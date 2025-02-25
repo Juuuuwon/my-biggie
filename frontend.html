@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Biggie API Tester</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Include any additional Tailwind config if needed -->
+  <style>
+    /* Custom style for the floating modal */
+    .modal-overlay {
+      background: rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <!-- Navigation Bar -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 bg-white shadow z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center">
+          <span class="text-xl font-bold text-blue-600">The Biggie</span>
+          <div class="hidden md:block ml-10">
+            <div class="flex items-baseline space-x-4">
+              <a href="#basic" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Basic APIs</a>
+              <a href="#health" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Health & Metadata</a>
+              <a href="#stress" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Stress Test</a>
+              <a href="#database" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Databases</a>
+              <a href="#redis" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Redis</a>
+              <a href="#kafka" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Kafka</a>
+              <a href="#error" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Error Injection</a>
+              <a href="#concurrency" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">Concurrency & DDoS</a>
+              <a href="#metrics" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-100">System Metrics</a>
+            </div>
+          </div>
+        </div>
+        <!-- Mobile menu button -->
+        <div class="-mr-2 flex md:hidden">
+          <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:bg-blue-100 focus:outline-none">
+            <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile Menu (hidden by default) -->
+    <div id="mobile-menu" class="hidden md:hidden">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <a href="#basic" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Basic APIs</a>
+        <a href="#health" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Health & Metadata</a>
+        <a href="#stress" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Stress Test</a>
+        <a href="#database" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Databases</a>
+        <a href="#redis" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Redis</a>
+        <a href="#kafka" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Kafka</a>
+        <a href="#error" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Error Injection</a>
+        <a href="#concurrency" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">Concurrency & DDoS</a>
+        <a href="#metrics" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-blue-100">System Metrics</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Floating Modal for RANDOM Syntax Insertion -->
+  <div id="random-modal" class="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 z-50 hidden">
+    <div class="flex justify-between items-center">
+      <h2 class="text-lg font-semibold">Insert RANDOM Syntax</h2>
+      <button id="modal-close" class="text-gray-500 hover:text-gray-700">&times;</button>
+    </div>
+    <p class="text-sm text-gray-600 mt-2">Enter a range to generate a random number using the syntax: <code>RANDOM:&lt;start&gt;:&lt;end&gt;</code></p>
+    <div class="mt-2">
+      <input id="random-input" type="text" placeholder="e.g., RANDOM:10:100" class="w-full px-2 py-1 border rounded">
+    </div>
+    <div class="mt-2 text-right">
+      <button id="insert-random" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Insert</button>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <div id="main-content" class="pt-20 max-w-7xl mx-auto px-4">
+
+    <section id="basic" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Basic APIs</h2>
+        
+        <!-- GET /simple -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /simple</h3>
+          <p class="text-sm text-gray-600 mb-2">This endpoint responds with a simple JSON message "ok". No parameters required.</p>
+          <button onclick="callSimple()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          <textarea id="output-simple" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- GET /simple/foo -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /simple/foo</h3>
+          <p class="text-sm text-gray-600 mb-2">Returns "foo ok" along with request header information (cookies, method, IP address, and query parameters).</p>
+          <button onclick="callFoo()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          <textarea id="output-foo" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- POST /simple/bar -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /simple/bar</h3>
+          <p class="text-sm text-gray-600 mb-2">Sends JSON data and responds with "bar ok" along with header and body details.</p>
+          <form id="form-bar" onsubmit="callBar(event)" class="space-y-2">
+            <label class="block">
+              JSON Body:
+              <textarea name="body" class="w-full p-2 border rounded" rows="3" placeholder='{"any": "data"}'>{"any": "data"}</textarea>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-bar" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- GET /simple/color [not JSON] -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /simple/color <span class="text-xs text-gray-500">(Not JSON)</span></h3>
+          <p class="text-sm text-gray-600 mb-2">Returns an HTML page with a random background color. Override using <code>?color=</code> (e.g., "#ff0000" or "RANDOM").</p>
+          <form id="form-color" onsubmit="callColor(event)" class="space-y-2">
+            <label class="block">
+              Color (optional):
+              <input type="text" name="color" value="" class="w-full p-2 border rounded" placeholder="#ff0000 or RANDOM">
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <div id="output-color" class="w-full mt-2 p-2 border rounded min-h-[100px]">HTML output will appear here...</div>
+        </div>
+        
+        <!-- GET /simple/large -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /simple/large</h3>
+          <p class="text-sm text-gray-600 mb-2">Generates a large JSON response by repeating a provided sentence. Parameters: <code>length</code> (number of repetitions) and <code>sentence</code>.</p>
+          <form id="form-large" onsubmit="callLarge(event)" class="space-y-2">
+            <label class="block">
+              Length:
+              <input type="text" name="length" value="10" class="w-full p-2 border rounded" placeholder="10 or RANDOM:5:15">
+            </label>
+            <label class="block">
+              Sentence:
+              <input type="text" name="sentence" value="This is a sample sentence." class="w-full p-2 border rounded" placeholder="Enter a sentence or use RANDOM">
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-large" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+      <section id="health" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Health & Metadata APIs</h2>
+        
+        <!-- GET /healthcheck -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /healthcheck</h3>
+          <p class="text-sm text-gray-600 mb-2">Simple health check. Returns "ok" in JSON format.</p>
+          <button onclick="callHealthcheck()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          <textarea id="output-healthcheck" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- GET /healthcheck/slow -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /healthcheck/slow</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Waits for a specified number of seconds before responding "ok". 
+            <br>
+            <strong>Parameter:</strong> <code>wait</code> (e.g., "1" or "RANDOM:1:5").
+          </p>
+          <form id="form-health-slow" onsubmit="callHealthSlow(event)" class="space-y-2">
+            <label class="block">
+              Wait (seconds):
+              <input type="text" name="wait" value="1" class="w-full p-2 border rounded" placeholder="Enter number or RANDOM:1:5">
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-health-slow" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- GET /healthcheck/external -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /healthcheck/external</h3>
+          <p class="text-sm text-gray-600 mb-2">Tests connectivity to all configured external services.</p>
+          <button onclick="callHealthExternal()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          <textarea id="output-health-external" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- GET /metadata/all -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /metadata/all</h3>
+          <p class="text-sm text-gray-600 mb-2">Retrieves metadata from EC2 (v1 & v2), ECS, and EKS environment variables.</p>
+          <button onclick="callMetadataAll()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          <textarea id="output-metadata-all" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- GET /metadata/revision_color [not JSON] -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /metadata/revision_color <span class="text-xs text-gray-500">(Not JSON)</span></h3>
+          <p class="text-sm text-gray-600 mb-2">Displays revision information as a background color. HTML output is injected below.</p>
+          <button onclick="callRevisionColor()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          <div id="output-revision-color" class="w-full mt-2 p-2 border rounded min-h-[100px]">HTML output will appear here...</div>
+        </div>
+      </section>
+
+      <section id="stress" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Stress Test APIs</h2>
+        
+        <!-- CPU Stress API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/cpu</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Maintains the specified <code>cpu_percent</code> for <code>maintain_second</code> seconds.
+            If <code>async</code> is true, returns immediately while the stress test runs in the background.
+            Example default: <code>{"cpu_percent": "RANDOM:10:50", "maintain_second": 30, "async": true}</code>
+          </p>
+          <form id="form-cpu" onsubmit="callCpuStress(event)" class="space-y-2">
+            <label class="block">
+              CPU Percent:
+              <input type="text" name="cpu_percent" value="RANDOM:10:50" class="w-full p-2 border rounded" placeholder="e.g., RANDOM:10:50">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30 or RANDOM:30:60">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-cpu" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Memory Stress API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/memory</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Maintains the specified <code>memory_percent</code> for <code>maintain_second</code> seconds.
+            Example: <code>{"memory_percent": "RANDOM:10:50", "maintain_second": 30, "async": true}</code>
+          </p>
+          <form id="form-memory" onsubmit="callMemoryStress(event)" class="space-y-2">
+            <label class="block">
+              Memory Percent:
+              <input type="text" name="memory_percent" value="RANDOM:10:50" class="w-full p-2 border rounded" placeholder="e.g., RANDOM:10:50">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-memory" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Simulate Memory Leak API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/memory_leak</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Gradually allocates a specified amount of memory (<code>leak_size_mb</code>) for <code>maintain_second</code> seconds.
+            Example: <code>{"leak_size_mb": 50, "maintain_second": 30, "async": true}</code>
+          </p>
+          <form id="form-memory-leak" onsubmit="callMemoryLeak(event)" class="space-y-2">
+            <label class="block">
+              Leak Size (MB):
+              <input type="text" name="leak_size_mb" value="50" class="w-full p-2 border rounded" placeholder="e.g., 50 or RANDOM:40:60">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-memory-leak" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Heavy File Write API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/filesystem/write</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Writes multiple files of specified <code>file_size</code> per interval. 
+            Example: <code>{"file_size": 1024, "file_count": 10, "maintain_second": 30, "async": true, "interval_second": 1}</code>
+          </p>
+          <form id="form-file-write" onsubmit="callFileWrite(event)" class="space-y-2">
+            <label class="block">
+              File Size (bytes):
+              <input type="text" name="file_size" value="1024" class="w-full p-2 border rounded" placeholder="e.g., 1024 or RANDOM:1024:2048">
+            </label>
+            <label class="block">
+              File Count:
+              <input type="text" name="file_count" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-file-write" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Heavy File Read API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/filesystem/read</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Reads from a specified file repeatedly. 
+            Example: <code>{"file_path": "/tmp/testfile", "maintain_second": 30, "async": true, "read_frequency": 10, "interval_second": 1}</code>
+          </p>
+          <form id="form-file-read" onsubmit="callFileRead(event)" class="space-y-2">
+            <label class="block">
+              File Path:
+              <input type="text" name="file_path" value="/tmp/testfile" class="w-full p-2 border rounded" placeholder="e.g., /tmp/testfile">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Read Frequency:
+              <input type="text" name="read_frequency" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10 or RANDOM:5:15">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-file-read" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Simulated Network Latency API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/network/latency</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Introduces artificial network latency. 
+            Example: <code>{"latency_ms": 200, "maintain_second": 30, "async": true}</code>
+          </p>
+          <form id="form-network-latency" onsubmit="callNetworkLatency(event)" class="space-y-2">
+            <label class="block">
+              Latency (ms):
+              <input type="text" name="latency_ms" value="200" class="w-full p-2 border rounded" placeholder="e.g., 200 or RANDOM:100:300">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-network-latency" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Simulated Packet Loss API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/network/packet_loss</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Simulates network instability by dropping a percentage of packets.
+            Example: <code>{"loss_percentage": 20, "maintain_second": 30, "async": true}</code>
+          </p>
+          <form id="form-packet-loss" onsubmit="callPacketLoss(event)" class="space-y-2">
+            <label class="block">
+              Loss Percentage:
+              <input type="text" name="loss_percentage" value="20" class="w-full p-2 border rounded" placeholder="e.g., 20 or RANDOM:10:30">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-packet-loss" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+      
+
+      <section id="database" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Heavy Database Activities</h2>
+        
+        <!-- MySQL APIs -->
+        <div class="bg-white p-4 rounded shadow mb-8">
+          <h3 class="text-xl font-semibold mb-2">MySQL APIs</h3>
+          
+          <!-- Heavy MySQL Query in Single Connection -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /mysql/heavy</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Performs heavy queries on a single connection. Executes <code>SELECT 1</code> for reads and <code>INSERT</code> into <code>biggie_test_table</code> for writes. 
+              Example: <code>{"reads": true, "writes": true, "maintain_second": "RANDOM:30:60", "async": true, "query_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-mysql-heavy" onsubmit="callMySQLHeavy(event)" class="space-y-2">
+              <label class="block">
+                Reads:
+                <select name="reads" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Writes:
+                <select name="writes" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="RANDOM:30:60" class="w-full p-2 border rounded" placeholder="e.g., RANDOM:30:60">
+              </label>
+              <label class="block">
+                Query Per Interval:
+                <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-mysql-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+          
+          <!-- Heavy MySQL Query in Multiple Connections -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /mysql/multi_heavy</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Executes heavy queries using multiple connections. Example: <code>{"reads": true, "writes": true, "maintain_second": 30, "async": true, "connection_counts": 10, "query_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-mysql-multi-heavy" onsubmit="callMySQLMultiHeavy(event)" class="space-y-2">
+              <label class="block">
+                Reads:
+                <select name="reads" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Writes:
+                <select name="writes" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Connection Counts:
+                <input type="text" name="connection_counts" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Query Per Interval:
+                <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-mysql-multi-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+          
+          <!-- Heavy MySQL Connections -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /mysql/connection</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Simulates heavy connection loads by gradually establishing connections.
+              Example: <code>{"maintain_second": 30, "async": true, "connection_counts": 100, "increase_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-mysql-connection" onsubmit="callMySQLConnection(event)" class="space-y-2">
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Connection Counts:
+                <input type="text" name="connection_counts" value="100" class="w-full p-2 border rounded" placeholder="e.g., 100">
+              </label>
+              <label class="block">
+                Increase Per Interval:
+                <input type="text" name="increase_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-mysql-connection" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+        </div>
+        
+        <!-- PostgreSQL APIs -->
+        <div class="bg-white p-4 rounded shadow mb-8">
+          <h3 class="text-xl font-semibold mb-2">PostgreSQL APIs</h3>
+          
+          <!-- Heavy PostgreSQL Query in Single Connection -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /postgres/heavy</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Executes heavy queries on a single PostgreSQL connection.
+              Example: <code>{"reads": true, "writes": true, "maintain_second": 30, "async": true, "query_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-postgres-heavy" onsubmit="callPostgresHeavy(event)" class="space-y-2">
+              <label class="block">
+                Reads:
+                <select name="reads" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Writes:
+                <select name="writes" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Query Per Interval:
+                <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-postgres-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+          
+          <!-- Heavy PostgreSQL Query in Multiple Connections -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /postgres/multi_heavy</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Executes heavy queries across multiple PostgreSQL connections.
+              Example: <code>{"reads": true, "writes": true, "maintain_second": 30, "async": true, "connection_counts": 10, "query_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-postgres-multi-heavy" onsubmit="callPostgresMultiHeavy(event)" class="space-y-2">
+              <label class="block">
+                Reads:
+                <select name="reads" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Writes:
+                <select name="writes" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Connection Counts:
+                <input type="text" name="connection_counts" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Query Per Interval:
+                <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-postgres-multi-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+          
+          <!-- Heavy PostgreSQL Connections -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /postgres/connection</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Simulates high connection loads for PostgreSQL.
+              Example: <code>{"maintain_second": 30, "async": true, "connection_counts": 100, "increase_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-postgres-connection" onsubmit="callPostgresConnection(event)" class="space-y-2">
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Connection Counts:
+                <input type="text" name="connection_counts" value="100" class="w-full p-2 border rounded" placeholder="e.g., 100">
+              </label>
+              <label class="block">
+                Increase Per Interval:
+                <input type="text" name="increase_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-postgres-connection" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+        </div>
+        
+        <!-- Redshift APIs -->
+        <div class="bg-white p-4 rounded shadow mb-8">
+          <h3 class="text-xl font-semibold mb-2">Redshift APIs</h3>
+          
+          <!-- Heavy Redshift Query in Single Connection -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /redshift/heavy</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Executes heavy queries on a single Redshift connection.
+              Example: <code>{"reads": true, "writes": true, "maintain_second": 30, "async": true, "query_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-redshift-heavy" onsubmit="callRedshiftHeavy(event)" class="space-y-2">
+              <label class="block">
+                Reads:
+                <select name="reads" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Writes:
+                <select name="writes" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Query Per Interval:
+                <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-redshift-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+          
+          <!-- Heavy Redshift Query in Multiple Connections -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /redshift/multi_heavy</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Executes heavy queries across multiple Redshift connections.
+              Example: <code>{"reads": true, "writes": true, "maintain_second": 30, "async": true, "connection_counts": 10, "query_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-redshift-multi-heavy" onsubmit="callRedshiftMultiHeavy(event)" class="space-y-2">
+              <label class="block">
+                Reads:
+                <select name="reads" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Writes:
+                <select name="writes" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Connection Counts:
+                <input type="text" name="connection_counts" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Query Per Interval:
+                <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-redshift-multi-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+          
+          <!-- Heavy Redshift Connections -->
+          <div class="bg-gray-50 p-4 rounded shadow mb-4">
+            <h4 class="font-semibold text-lg">POST /redshift/connection</h4>
+            <p class="text-sm text-gray-600 mb-2">
+              Simulates heavy connection loads for Redshift.
+              Example: <code>{"maintain_second": 30, "async": true, "connection_counts": 100, "increase_per_interval": 10, "interval_second": 1}</code>
+            </p>
+            <form id="form-redshift-connection" onsubmit="callRedshiftConnection(event)" class="space-y-2">
+              <label class="block">
+                Maintain Seconds:
+                <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+              </label>
+              <label class="block">
+                Connection Counts:
+                <input type="text" name="connection_counts" value="100" class="w-full p-2 border rounded" placeholder="e.g., 100">
+              </label>
+              <label class="block">
+                Increase Per Interval:
+                <input type="text" name="increase_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+              </label>
+              <label class="block">
+                Interval Seconds:
+                <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+              </label>
+              <label class="block">
+                Async:
+                <select name="async" class="w-full p-2 border rounded">
+                  <option value="true" selected>True</option>
+                  <option value="false">False</option>
+                </select>
+              </label>
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+            </form>
+            <textarea id="output-redshift-connection" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+          </div>
+        </div>
+      </section>
+      <section id="redis" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Redis APIs</h2>
+        
+        <!-- Heavy Redis Query in Single Connection -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /redis/heavy</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Triggers heavy Redis queries on a single connection (GET/SET commands on "stress_key").
+            Example: <code>{"reads": true, "writes": true, "maintain_second": 30, "async": true, "query_per_interval": 10, "interval_second": 1}</code>
+          </p>
+          <form id="form-redis-heavy" onsubmit="callRedisHeavy(event)" class="space-y-2">
+            <label class="block">
+              Reads:
+              <select name="reads" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <label class="block">
+              Writes:
+              <select name="writes" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30 or RANDOM:30:60">
+            </label>
+            <label class="block">
+              Query Per Interval:
+              <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-redis-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Heavy Redis Query in Multiple Connections -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /redis/multi_heavy</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Executes heavy Redis queries across multiple connections.
+            Example: <code>{"reads": true, "writes": true, "maintain_second": 30, "async": true, "connection_counts": 10, "query_per_interval": 10, "interval_second": 1}</code>
+          </p>
+          <form id="form-redis-multi-heavy" onsubmit="callRedisMultiHeavy(event)" class="space-y-2">
+            <label class="block">
+              Reads:
+              <select name="reads" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <label class="block">
+              Writes:
+              <select name="writes" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Connection Counts:
+              <input type="text" name="connection_counts" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Query Per Interval:
+              <input type="text" name="query_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-redis-multi-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Heavy Redis Connections -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /redis/connection</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Simulates high connection load for Redis.
+            Example: <code>{"maintain_second": 30, "async": true, "connection_counts": 100, "increase_per_interval": 10, "interval_second": 1}</code>
+          </p>
+          <form id="form-redis-connection" onsubmit="callRedisConnection(event)" class="space-y-2">
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Connection Counts:
+              <input type="text" name="connection_counts" value="100" class="w-full p-2 border rounded" placeholder="e.g., 100">
+            </label>
+            <label class="block">
+              Increase Per Interval:
+              <input type="text" name="increase_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-redis-connection" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+      
+      <section id="kafka" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Kafka APIs</h2>
+        
+        <!-- Heavy Kafka Produce -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /kafka/heavy</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Sends messages to a Kafka topic using a single producer connection.
+            Example: <code>{"messages": "", "maintain_second": 30, "async": true, "produce_per_interval": 10, "interval_second": 1}</code>
+            <br>
+            If the <code>messages</code> field is empty, a lorem ipsum message is generated automatically.
+          </p>
+          <form id="form-kafka-heavy" onsubmit="callKafkaHeavy(event)" class="space-y-2">
+            <label class="block">
+              Messages (optional):
+              <input type="text" name="messages" value="" class="w-full p-2 border rounded" placeholder="Enter message or leave blank for lorem ipsum">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Produce Per Interval:
+              <input type="text" name="produce_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-kafka-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Heavy Kafka Produce in Multiple Producers -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /kafka/multi_heavy</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Performs heavy message production using multiple producer connections.
+            Example: <code>{"messages": "", "maintain_second": 30, "async": true, "connection_counts": 10, "produce_per_interval": 10, "interval_second": 1}</code>
+          </p>
+          <form id="form-kafka-multi-heavy" onsubmit="callKafkaMultiHeavy(event)" class="space-y-2">
+            <label class="block">
+              Messages (optional):
+              <input type="text" name="messages" value="" class="w-full p-2 border rounded" placeholder="Enter message or leave blank for lorem ipsum">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Connection Counts:
+              <input type="text" name="connection_counts" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Produce Per Interval:
+              <input type="text" name="produce_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-kafka-multi-heavy" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Heavy Kafka Connections -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /kafka/connection</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Simulates heavy load by establishing many Kafka producer connections.
+            Example: <code>{"maintain_second": 30, "async": true, "connection_counts": 100, "increase_per_interval": 10, "interval_second": 1}</code>
+          </p>
+          <form id="form-kafka-connection" onsubmit="callKafkaConnection(event)" class="space-y-2">
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Connection Counts:
+              <input type="text" name="connection_counts" value="100" class="w-full p-2 border rounded" placeholder="e.g., 100">
+            </label>
+            <label class="block">
+              Increase Per Interval:
+              <input type="text" name="increase_per_interval" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-kafka-connection" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+      
+      <section id="error" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Error Injection APIs</h2>
+        
+        <!-- Inject Random Error API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/error_injection</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Randomly injects errors into API responses at a defined rate.
+            Example: <code>{"error_rate": "RANDOM:0.05:0.15", "maintain_second": 30, "async": true}</code>
+          </p>
+          <form id="form-error-injection" onsubmit="callErrorInjection(event)" class="space-y-2">
+            <label class="block">
+              Error Rate:
+              <input type="text" name="error_rate" value="RANDOM:0.05:0.15" class="w-full p-2 border rounded" placeholder="e.g., RANDOM:0.05:0.15">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-error-injection" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Crash Simulation API -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/crash</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Simulates an unexpected service crash after a brief delay.
+            Example: <code>{"maintain_second": 10, "async": true}</code>
+          </p>
+          <form id="form-crash" onsubmit="callCrash(event)" class="space-y-2">
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-crash" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+      
+      <section id="concurrency" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Concurrency & DDoS APIs</h2>
+        
+        <!-- Simulate Concurrent Flood -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/concurrent_flood</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Simulates a flood of concurrent requests to a target endpoint.
+            Example: <code>{"target_endpoint": "/simple", "request_count": 1000, "maintain_second": 30, "async": true, "interval_second": 1}</code>
+          </p>
+          <form id="form-concurrent-flood" onsubmit="callConcurrentFlood(event)" class="space-y-2">
+            <label class="block">
+              Target Endpoint:
+              <input type="text" name="target_endpoint" value="/simple" class="w-full p-2 border rounded" placeholder="e.g., /simple">
+            </label>
+            <label class="block">
+              Request Count:
+              <input type="text" name="request_count" value="1000" class="w-full p-2 border rounded" placeholder="e.g., 1000 or RANDOM:500:1500">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-concurrent-flood" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Simulate Downtime -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/downtime</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Temporarily disables responses to simulate downtime.
+            Example: <code>{"downtime_second": 10, "async": true}</code>
+          </p>
+          <form id="form-downtime" onsubmit="callDowntime(event)" class="space-y-2">
+            <label class="block">
+              Downtime Seconds:
+              <input type="text" name="downtime_second" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-downtime" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Simulate External API Calls -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/third_party</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Simulates calls to an external API.
+            Example: <code>{"target_url": "https://api.example.com/data", "maintain_second": 30, "async": true, "call_rate": 10, "interval_second": 1, "simulate_errors": true}</code>
+          </p>
+          <form id="form-third-party" onsubmit="callThirdParty(event)" class="space-y-2">
+            <label class="block">
+              Target URL:
+              <input type="text" name="target_url" value="https://api.example.com/data" class="w-full p-2 border rounded" placeholder="e.g., https://api.example.com/data">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Call Rate:
+              <input type="text" name="call_rate" value="10" class="w-full p-2 border rounded" placeholder="e.g., 10 or RANDOM:5:15">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Simulate Errors:
+              <select name="simulate_errors" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-third-party" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+        
+        <!-- Simulate DDoS Attack -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/ddos</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Simulates a DDoS attack by sending high-volume requests.
+            Example: <code>{"target_endpoint": "/simple", "attack_intensity": 1000, "maintain_second": 30, "async": true, "interval_second": 1}</code>
+          </p>
+          <form id="form-ddos" onsubmit="callDDoS(event)" class="space-y-2">
+            <label class="block">
+              Target Endpoint:
+              <input type="text" name="target_endpoint" value="/simple" class="w-full p-2 border rounded" placeholder="e.g., /simple">
+            </label>
+            <label class="block">
+              Attack Intensity:
+              <input type="text" name="attack_intensity" value="1000" class="w-full p-2 border rounded" placeholder="e.g., 1000 or RANDOM:500:1500">
+            </label>
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_second" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          </form>
+          <textarea id="output-ddos" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+      
+      <section id="metrics" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">System Metrics API</h2>
+        
+        <!-- Fetch System Metrics -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">GET /metrics/system</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Provides aggregated system metrics including CPU load, memory usage, network throughput, and details of ongoing stress tests.
+          </p>
+          <button onclick="callSystemMetrics()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
+          <textarea id="output-system-metrics" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+    </div>
+    
+    <script>
+        // Wait for DOM to load
+        document.addEventListener("DOMContentLoaded", function() {
+          // Modal functionality for RANDOM syntax insertion
+          const modal = document.getElementById('random-modal');
+          const modalClose = document.getElementById('modal-close');
+          const insertRandomButton = document.getElementById('insert-random');
+          const randomInput = document.getElementById('random-input');
+        
+          // Close modal on button click
+          modalClose.addEventListener('click', function() {
+            modal.classList.add('hidden');
+          });
+          // Insert RANDOM value into the currently focused input
+          insertRandomButton.addEventListener('click', function() {
+            const randomValue = randomInput.value;
+            const activeElement = document.activeElement;
+            if(activeElement && activeElement.tagName === "INPUT") {
+              activeElement.value = randomValue;
+            }
+            modal.classList.add('hidden');
+          });
+        
+          // Mobile menu toggle
+          const mobileMenuButton = document.getElementById('mobile-menu-button');
+          const mobileMenu = document.getElementById('mobile-menu');
+          mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+          });
+        
+          // Navbar collapse on scroll
+          window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+              navbar.classList.add('shadow-md');
+            } else {
+              navbar.classList.remove('shadow-md');
+            }
+          });
+        });
+        
+        // Generic API call function using fetch
+        async function apiCall(method, url, data) {
+          const options = { method, headers: {} };
+          if (data) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(data);
+          }
+          try {
+            const response = await fetch(url, options);
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              return await response.json();
+            } else {
+              return await response.text();
+            }
+          } catch (err) {
+            return { error: "NETWORK_ERROR", message: err.toString() };
+          }
+        }
+        
+        // -------------------------
+        // Basic APIs
+        // -------------------------
+        async function callSimple() {
+          const output = document.getElementById('output-simple');
+          const result = await apiCall('GET', '/simple');
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callFoo() {
+          const output = document.getElementById('output-foo');
+          const result = await apiCall('GET', '/simple/foo');
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callBar(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-bar');
+          const formData = new FormData(form);
+          let body;
+          try {
+            body = JSON.parse(formData.get('body'));
+          } catch (e) {
+            body = formData.get('body');
+          }
+          const output = document.getElementById('output-bar');
+          const result = await apiCall('POST', '/simple/bar', body);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callColor(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-color');
+          const formData = new FormData(form);
+          const colorParam = formData.get('color');
+          let url = '/simple/color';
+          if (colorParam) {
+            url += '?color=' + encodeURIComponent(colorParam);
+          }
+          const output = document.getElementById('output-color');
+          const result = await apiCall('GET', url);
+          output.innerHTML = result; // HTML output
+        }
+        
+        async function callLarge(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-large');
+          const formData = new FormData(form);
+          const params = new URLSearchParams();
+          for (let [key, value] of formData.entries()) {
+            params.append(key, value);
+          }
+          const url = '/simple/large?' + params.toString();
+          const output = document.getElementById('output-large');
+          const result = await apiCall('GET', url);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Health & Metadata APIs
+        // -------------------------
+        async function callHealthcheck() {
+          const output = document.getElementById('output-healthcheck');
+          const result = await apiCall('GET', '/healthcheck');
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callHealthSlow(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-health-slow');
+          const formData = new FormData(form);
+          const wait = formData.get('wait');
+          const url = '/healthcheck/slow?wait=' + encodeURIComponent(wait);
+          const output = document.getElementById('output-health-slow');
+          const result = await apiCall('GET', url);
+          output.value = result;
+        }
+        
+        async function callHealthExternal() {
+          const output = document.getElementById('output-health-external');
+          const result = await apiCall('GET', '/healthcheck/external');
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callMetadataAll() {
+          const output = document.getElementById('output-metadata-all');
+          const result = await apiCall('GET', '/metadata/all');
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callRevisionColor() {
+          const output = document.getElementById('output-revision-color');
+          const result = await apiCall('GET', '/metadata/revision_color');
+          output.innerHTML = result;
+        }
+        
+        // -------------------------
+        // Stress Test APIs
+        // -------------------------
+        async function callCpuStress(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-cpu');
+          const formData = new FormData(form);
+          const data = {
+            cpu_percent: formData.get('cpu_percent'),
+            maintain_second: formData.get('maintain_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-cpu');
+          const result = await apiCall('POST', '/stress/cpu', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callMemoryStress(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-memory');
+          const formData = new FormData(form);
+          const data = {
+            memory_percent: formData.get('memory_percent'),
+            maintain_second: formData.get('maintain_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-memory');
+          const result = await apiCall('POST', '/stress/memory', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callMemoryLeak(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-memory-leak');
+          const formData = new FormData(form);
+          const data = {
+            leak_size_mb: formData.get('leak_size_mb'),
+            maintain_second: formData.get('maintain_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-memory-leak');
+          const result = await apiCall('POST', '/stress/memory_leak', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callFileWrite(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-file-write');
+          const formData = new FormData(form);
+          const data = {
+            file_size: formData.get('file_size'),
+            file_count: formData.get('file_count'),
+            maintain_second: formData.get('maintain_second'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-file-write');
+          const result = await apiCall('POST', '/stress/filesystem/write', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callFileRead(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-file-read');
+          const formData = new FormData(form);
+          const data = {
+            file_path: formData.get('file_path'),
+            maintain_second: formData.get('maintain_second'),
+            read_frequency: formData.get('read_frequency'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-file-read');
+          const result = await apiCall('POST', '/stress/filesystem/read', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callNetworkLatency(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-network-latency');
+          const formData = new FormData(form);
+          const data = {
+            latency_ms: formData.get('latency_ms'),
+            maintain_second: formData.get('maintain_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-network-latency');
+          const result = await apiCall('POST', '/stress/network/latency', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callPacketLoss(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-packet-loss');
+          const formData = new FormData(form);
+          const data = {
+            loss_percentage: formData.get('loss_percentage'),
+            maintain_second: formData.get('maintain_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-packet-loss');
+          const result = await apiCall('POST', '/stress/network/packet_loss', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Database APIs - MySQL
+        // -------------------------
+        async function callMySQLHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-mysql-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-mysql-heavy');
+          const result = await apiCall('POST', '/mysql/heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callMySQLMultiHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-mysql-multi-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-mysql-multi-heavy');
+          const result = await apiCall('POST', '/mysql/multi_heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callMySQLConnection(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-mysql-connection');
+          const formData = new FormData(form);
+          const data = {
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            increase_per_interval: formData.get('increase_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-mysql-connection');
+          const result = await apiCall('POST', '/mysql/connection', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Database APIs - PostgreSQL
+        // -------------------------
+        async function callPostgresHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-postgres-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-postgres-heavy');
+          const result = await apiCall('POST', '/postgres/heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callPostgresMultiHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-postgres-multi-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-postgres-multi-heavy');
+          const result = await apiCall('POST', '/postgres/multi_heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callPostgresConnection(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-postgres-connection');
+          const formData = new FormData(form);
+          const data = {
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            increase_per_interval: formData.get('increase_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-postgres-connection');
+          const result = await apiCall('POST', '/postgres/connection', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Database APIs - Redshift
+        // -------------------------
+        async function callRedshiftHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-redshift-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-redshift-heavy');
+          const result = await apiCall('POST', '/redshift/heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callRedshiftMultiHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-redshift-multi-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-redshift-multi-heavy');
+          const result = await apiCall('POST', '/redshift/multi_heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callRedshiftConnection(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-redshift-connection');
+          const formData = new FormData(form);
+          const data = {
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            increase_per_interval: formData.get('increase_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-redshift-connection');
+          const result = await apiCall('POST', '/redshift/connection', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Redis APIs
+        // -------------------------
+        async function callRedisHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-redis-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-redis-heavy');
+          const result = await apiCall('POST', '/redis/heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callRedisMultiHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-redis-multi-heavy');
+          const formData = new FormData(form);
+          const data = {
+            reads: formData.get('reads') === 'true',
+            writes: formData.get('writes') === 'true',
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            query_per_interval: formData.get('query_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-redis-multi-heavy');
+          const result = await apiCall('POST', '/redis/multi_heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callRedisConnection(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-redis-connection');
+          const formData = new FormData(form);
+          const data = {
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            increase_per_interval: formData.get('increase_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-redis-connection');
+          const result = await apiCall('POST', '/redis/connection', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Kafka APIs
+        // -------------------------
+        async function callKafkaHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-kafka-heavy');
+          const formData = new FormData(form);
+          const data = {
+            messages: formData.get('messages'),
+            maintain_second: formData.get('maintain_second'),
+            produce_per_interval: formData.get('produce_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-kafka-heavy');
+          const result = await apiCall('POST', '/kafka/heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callKafkaMultiHeavy(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-kafka-multi-heavy');
+          const formData = new FormData(form);
+          const data = {
+            messages: formData.get('messages'),
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            produce_per_interval: formData.get('produce_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-kafka-multi-heavy');
+          const result = await apiCall('POST', '/kafka/multi_heavy', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callKafkaConnection(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-kafka-connection');
+          const formData = new FormData(form);
+          const data = {
+            maintain_second: formData.get('maintain_second'),
+            connection_counts: formData.get('connection_counts'),
+            increase_per_interval: formData.get('increase_per_interval'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-kafka-connection');
+          const result = await apiCall('POST', '/kafka/connection', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Error Injection APIs
+        // -------------------------
+        async function callErrorInjection(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-error-injection');
+          const formData = new FormData(form);
+          const data = {
+            error_rate: formData.get('error_rate'),
+            maintain_second: formData.get('maintain_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-error-injection');
+          const result = await apiCall('POST', '/stress/error_injection', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callCrash(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-crash');
+          const formData = new FormData(form);
+          const data = {
+            maintain_second: formData.get('maintain_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-crash');
+          const result = await apiCall('POST', '/stress/crash', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // Concurrency & DDoS APIs
+        // -------------------------
+        async function callConcurrentFlood(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-concurrent-flood');
+          const formData = new FormData(form);
+          const data = {
+            target_endpoint: formData.get('target_endpoint'),
+            request_count: formData.get('request_count'),
+            maintain_second: formData.get('maintain_second'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-concurrent-flood');
+          const result = await apiCall('POST', '/stress/concurrent_flood', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callDowntime(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-downtime');
+          const formData = new FormData(form);
+          const data = {
+            downtime_second: formData.get('downtime_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-downtime');
+          const result = await apiCall('POST', '/stress/downtime', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callThirdParty(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-third-party');
+          const formData = new FormData(form);
+          const data = {
+            target_url: formData.get('target_url'),
+            maintain_second: formData.get('maintain_second'),
+            call_rate: formData.get('call_rate'),
+            interval_second: formData.get('interval_second'),
+            simulate_errors: formData.get('simulate_errors') === 'true',
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-third-party');
+          const result = await apiCall('POST', '/stress/third_party', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        async function callDDoS(event) {
+          event.preventDefault();
+          const form = document.getElementById('form-ddos');
+          const formData = new FormData(form);
+          const data = {
+            target_endpoint: formData.get('target_endpoint'),
+            attack_intensity: formData.get('attack_intensity'),
+            maintain_second: formData.get('maintain_second'),
+            interval_second: formData.get('interval_second'),
+            async: formData.get('async') === 'true'
+          };
+          const output = document.getElementById('output-ddos');
+          const result = await apiCall('POST', '/stress/ddos', data);
+          output.value = JSON.stringify(result, null, 2);
+        }
+        
+        // -------------------------
+        // System Metrics API
+        // -------------------------
+        async function callSystemMetrics() {
+          const output = document.getElementById('output-system-metrics');
+          const result = await apiCall('GET', '/metrics/system');
+          output.value = JSON.stringify(result, null, 2);
+        }
+        </script>
+</body>
+</html>

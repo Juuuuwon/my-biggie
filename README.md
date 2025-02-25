@@ -7,8 +7,7 @@ Written in Golang.
 
 ## Table of Contents
 
-- [Supported REST APIs](#supported-rest-apis)
-  - [For ALL APIs](#for-all-apis)
+- [For ALL APIs](#for-all-apis)
 - [API Endpoints](#api-endpoints)
   - [Basic APIs](#basic-apis)
   - [Health & Metadata APIs](#health--metadata-apis)
@@ -22,32 +21,29 @@ Written in Golang.
   - [Error Injection APIs](#error-injection-apis)
   - [Service Management APIs](#service-management-apis)
   - [Concurrency & DDoS APIs](#concurrency--ddos-apis)
-- [System Metrics API](#system-metrics-api)
+  - [System Metrics API](#system-metrics-api)
 
 ---
 
-## Supported REST APIs
-
+## For ALL APIs
 All APIs are RESTful and most use JSON for request/response bodies unless noted as **[not JSON]**. Every response contains a `requested_at` field with an ISO 8601 timestamp (e.g., `2025-02-24T02:54:39.090Z`). For non-JSON APIs, this timestamp appears in plain text.
 
-### For ALL APIs
-
-#### Body Type
+### Body Type
 - **JSON:** All requests and responses use JSON except those explicitly marked as **[not JSON]**.
 - **Timestamp:** Every response includes a `requested_at` field (ISO format with a 'T' delimiter).
 
-#### Optional Variables
+### Optional Variables
 - **Query Parameters:**  
   - Required: `?key=<value>`  
   - Optional: `?key=[value]`
 - All query parameters, environment variables, and JSON body fields are "duck-typed". Biggie automatically converts values to the correct type; if conversion fails or illegal characters are detected, an error is returned.
 
-#### Random Variables
+### Random Variables
 - Use the keyword `"RANDOM"` in any query parameter, environment variable, or JSON body field to select a random value per API request.
 - When using `"RANDOM"`, the API response will include the chosen random value (either in a JSON field or as HTML text).
 - For numeric fields, you can specify a range using the syntax: `RANDOM:<start>:<end>`.
 
-#### Standard Error Format
+### Standard Error Format
 All JSON API errors follow this format:
 
 ```json
@@ -62,7 +58,7 @@ All JSON API errors follow this format:
 
 For non-JSON APIs, similar error information is returned in plain text.
 
-#### External Services
+### External Services
 Some APIs require environment variables for external services. Variables are prioritized in the order listed; if a higher priority variable is provided, lower ones are ignored. Schemas and/or tables for testing are automatically created.
 
 **Important:** All SSL/TLS certificates from external services are not verified on the Biggie side.
@@ -160,13 +156,13 @@ GET /healthcheck/external
 ```
 GET /metadata/all
 ```
-- Retrieves metadata from EC2 (v1 and v2), ECS, and EKS environment variables.
+- Retrieves metadata from EC2 Instance Metadata Service (v1 and v2), ECS Metadata Service, and EKS environment variables.
 
 #### Visualize Revision HTML API **[not JSON]**
 ```
 GET /metadata/revision_color
 ```
-- Retrieves ECS and EKS metadata.
+- Retrieves metadata from ECS Metadata Service, and EKS environment variables.
 - Converts revision numbers (for EKS, the replicaSet from the pod name; for ECS, the task definition revision) to a CSS color string using a hash function.
 - Displays different background colors based on revisions. The color is calculated at application startup.
 - If ECS or EKS metadata is unavailable, displays a black background with an error message.
@@ -461,19 +457,6 @@ Content-Type: application/json
 ```
 - Simulates an unexpected service crash after a brief operational period.
 - Useful for validating recovery procedures and failover mechanisms.
-
----
-
-### Service Management APIs
-
-#### Service Restart API
-```
-POST /service/restart
-Content-Type: application/json
-
-{ "delay": 5 }
-```
-- Schedules a service restart after the specified delay (in seconds), enabling testing of system recovery and failover processes.
 
 ---
 
