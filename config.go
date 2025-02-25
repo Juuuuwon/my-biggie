@@ -14,7 +14,7 @@ func initConfig() {
 	if err != nil {
 		log("no config file found, using defaults", zap.Error(err))
 	}
-	// Default environment variables.
+	viper.AutomaticEnv()
 	viper.SetDefault("PORT", "8080")
 	viper.SetDefault("STARTUP_DELAY_SECOND", "0")
 }
