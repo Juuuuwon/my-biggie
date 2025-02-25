@@ -1295,6 +1295,55 @@
           <textarea id="output-system-metrics" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
         </div>
       </section>
+
+      <section id="logs" class="mb-12">
+        <h2 class="text-2xl font-bold mb-4">Fake Log Generation API</h2>
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /stress/logs</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Generates log messages over time with random content. The logs are produced using a log format defined by the LOG_FORMAT environment variable.
+            <br>
+            <strong>Parameters:</strong>
+            <ul class="list-disc pl-5">
+              <li><code>maintain_second</code>: Total duration (in seconds) during which logs are generated.</li>
+              <li><code>log_count_per_interval</code>: Number of log messages generated each interval. Supports RANDOM syntax (e.g., "RANDOM:5:15").</li>
+              <li><code>line_per_log</code>: Number of lines in each generated log message.</li>
+              <li><code>interval_seconds</code>: Time (in seconds) between each log generation cycle.</li>
+              <li><code>async</code>: If true, the API returns immediately while log generation continues in the background.</li>
+            </ul>
+            <br>
+            Example: <code>{"maintain_second": 30, "log_count_per_interval": "RANDOM:5:15", "line_per_log": 3, "interval_seconds": 1, "async": true}</code>
+          </p>
+          <form id="form-logs" onsubmit="callLogs(event)" class="space-y-2">
+            <label class="block">
+              Maintain Seconds:
+              <input type="text" name="maintain_second" value="30" class="w-full p-2 border rounded" placeholder="e.g., 30 or RANDOM:30:60">
+            </label>
+            <label class="block">
+              Log Count Per Interval:
+              <input type="text" name="log_count_per_interval" value="RANDOM:5:15" class="w-full p-2 border rounded" placeholder="e.g., RANDOM:5:15">
+            </label>
+            <label class="block">
+              Lines Per Log:
+              <input type="text" name="line_per_log" value="3" class="w-full p-2 border rounded" placeholder="e.g., 3">
+            </label>
+            <label class="block">
+              Interval Seconds:
+              <input type="text" name="interval_seconds" value="1" class="w-full p-2 border rounded" placeholder="e.g., 1">
+            </label>
+            <label class="block">
+              Async:
+              <select name="async" class="w-full p-2 border rounded">
+                <option value="true" selected>True</option>
+                <option value="false">False</option>
+              </select>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Generate Logs</button>
+          </form>
+          <textarea id="output-logs" class="w-full mt-2 p-2 border rounded" rows="6" placeholder="Output will appear here..."></textarea>
+        </div>
+      </section>
+      
     </div>
     
     <script>
@@ -1930,6 +1979,23 @@
           const result = await apiCall('GET', '/metrics/system');
           output.value = JSON.stringify(result, null, 2);
         }
+
+        async function callLogs(event) {
+            event.preventDefault();
+            const form = document.getElementById('form-logs');
+            const formData = new FormData(form);
+            const data = {
+              maintain_second: formData.get('maintain_second'),
+              log_count_per_interval: formData.get('log_count_per_interval'),
+              line_per_log: formData.get('line_per_log'),
+              interval_seconds: formData.get('interval_seconds'),
+              async: formData.get('async') === 'true'
+            };
+            const output = document.getElementById('output-logs');
+            const result = await apiCall('POST', '/stress/logs', data);
+            output.value = JSON.stringify(result, null, 2);
+          }
+
         </script>
 </body>
 </html>

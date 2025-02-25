@@ -46,14 +46,14 @@ func ConcurrentFloodHandler(c *gin.Context) {
 					defer wg.Done()
 					// We ignore the response; errors are logged.
 					if _, err := client.Get(fullURL); err != nil {
-						logger.Error("concurrent flood request failed", zap.Error(err))
+						log("concurrent flood request failed", zap.Error(err))
 					}
 				}()
 			}
 			wg.Wait()
 			time.Sleep(time.Duration(intervalSec) * time.Second)
 		}
-		logger.Info("Concurrent flood simulation completed", zap.Int("duration_sec", maintainSec))
+		log("Concurrent flood simulation completed", zap.Int("duration_sec", maintainSec))
 	}
 
 	if payload.Async {
@@ -102,14 +102,14 @@ func DowntimeHandler(c *gin.Context) {
 	downtimeMutex.Lock()
 	downtimeActive = true
 	downtimeMutex.Unlock()
-	logger.Info("Downtime simulation started", zap.Int("downtime_sec", downtimeSec))
+	log("Downtime simulation started", zap.Int("downtime_sec", downtimeSec))
 
 	resetFunc := func() {
 		time.Sleep(time.Duration(downtimeSec) * time.Second)
 		downtimeMutex.Lock()
 		downtimeActive = false
 		downtimeMutex.Unlock()
-		logger.Info("Downtime simulation ended")
+		log("Downtime simulation ended")
 	}
 
 	if payload.Async {
@@ -177,18 +177,18 @@ func ThirdPartyHandler(c *gin.Context) {
 					defer wg.Done()
 					// If simulate_errors is enabled, randomly decide to inject an error.
 					if simErr && rand.Float64() < 0.2 {
-						logger.Error("Simulated third-party call error")
+						log("Simulated third-party call error")
 						return
 					}
 					if _, err := client.Get(targetURL); err != nil {
-						logger.Error("Third-party API call failed", zap.Error(err))
+						log("Third-party API call failed", zap.Error(err))
 					}
 				}()
 			}
 			wg.Wait()
 			time.Sleep(time.Duration(intervalSec) * time.Second)
 		}
-		logger.Info("Third-party API call simulation completed", zap.Int("duration_sec", maintainSec))
+		log("Third-party API call simulation completed", zap.Int("duration_sec", maintainSec))
 	}
 
 	if payload.Async {
@@ -246,14 +246,14 @@ func DDoSHandler(c *gin.Context) {
 				go func() {
 					defer wg.Done()
 					if _, err := client.Get(fullURL); err != nil {
-						logger.Error("DDoS attack request failed", zap.Error(err))
+						log("DDoS attack request failed", zap.Error(err))
 					}
 				}()
 			}
 			wg.Wait()
 			time.Sleep(time.Duration(intervalSec) * time.Second)
 		}
-		logger.Info("DDoS attack simulation completed", zap.Int("duration_sec", maintainSec))
+		log("DDoS attack simulation completed", zap.Int("duration_sec", maintainSec))
 	}
 
 	if payload.Async {

@@ -89,19 +89,19 @@ func RedisHeavyHandler(c *gin.Context) {
 				if payload.Reads {
 					_, err := client.Get(ctx, "stress_key").Result()
 					if err != nil && err != redis.Nil {
-						logger.Error("Redis heavy read failed", zap.Error(err))
+						log("Redis heavy read failed", zap.Error(err))
 					}
 				}
 				if payload.Writes {
 					if err := client.Set(ctx, "stress_key", "stress", 0).Err(); err != nil {
-						logger.Error("Redis heavy write failed", zap.Error(err))
+						log("Redis heavy write failed", zap.Error(err))
 					}
 				}
 			}
 			time.Sleep(time.Duration(intervalSec) * time.Second)
 		}
 		client.Close()
-		logger.Info("Redis heavy query (single connection) completed", zap.Int("duration_sec", maintainSec))
+		log("Redis heavy query (single connection) completed", zap.Int("duration_sec", maintainSec))
 	}
 
 	if payload.Async {
@@ -144,7 +144,7 @@ func RedisMultiHeavyHandler(c *gin.Context) {
 				defer wg.Done()
 				client, err := getRedisClient()
 				if err != nil {
-					logger.Error("Redis multi heavy connection failed", zap.Int("conn", connNum), zap.Error(err))
+					log("Redis multi heavy connection failed", zap.Int("conn", connNum), zap.Error(err))
 					return
 				}
 				ctx := context.Background()
@@ -154,12 +154,12 @@ func RedisMultiHeavyHandler(c *gin.Context) {
 						if payload.Reads {
 							_, err := client.Get(ctx, "stress_key").Result()
 							if err != nil && err != redis.Nil {
-								logger.Error("Redis multi heavy read failed", zap.Int("conn", connNum), zap.Error(err))
+								log("Redis multi heavy read failed", zap.Int("conn", connNum), zap.Error(err))
 							}
 						}
 						if payload.Writes {
 							if err := client.Set(ctx, "stress_key", "stress", 0).Err(); err != nil {
-								logger.Error("Redis multi heavy write failed", zap.Int("conn", connNum), zap.Error(err))
+								log("Redis multi heavy write failed", zap.Int("conn", connNum), zap.Error(err))
 							}
 						}
 					}
@@ -169,7 +169,7 @@ func RedisMultiHeavyHandler(c *gin.Context) {
 			}(i)
 		}
 		wg.Wait()
-		logger.Info("Redis multi heavy query completed", zap.Int("connections", connectionCounts))
+		log("Redis multi heavy query completed", zap.Int("connections", connectionCounts))
 	}
 
 	if payload.Async {
@@ -222,7 +222,7 @@ func RedisConnectionHandler(c *gin.Context) {
 				for i := 0; i < increasePerInterval && currentCount < connectionCounts; i++ {
 					client, err := getRedisClient()
 					if err != nil {
-						logger.Error("Redis connection stress open failed", zap.Error(err))
+						log("Redis connection stress open failed", zap.Error(err))
 						continue
 					}
 					mu.Lock()
@@ -252,7 +252,7 @@ func RedisConnectionHandler(c *gin.Context) {
 			client.Close()
 		}
 		mu.Unlock()
-		logger.Info("Redis connection stress completed", zap.Int("connections", currentCount))
+		log("Redis connection stress completed", zap.Int("connections", currentCount))
 	}
 
 	if payload.Async {

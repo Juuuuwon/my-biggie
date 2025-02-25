@@ -22,16 +22,16 @@ func SetupTestDatabase(dbType string, db *sql.DB) error {
 			);
 		`
 		if _, err := db.Exec(query); err != nil {
-			logger.Error("failed to create test table for MySQL", zap.Error(err))
+			log("failed to create test table for MySQL", zap.Error(err))
 			return err
 		}
-		logger.Info("MySQL test table created or already exists")
+		log("MySQL test table created or already exists")
 		return nil
 
 	case "postgres":
 		// Create schema if it does not exist.
 		if _, err := db.Exec(`CREATE SCHEMA IF NOT EXISTS biggie_test_schema;`); err != nil {
-			logger.Error("failed to create test schema for PostgreSQL", zap.Error(err))
+			log("failed to create test schema for PostgreSQL", zap.Error(err))
 			return err
 		}
 		query := `
@@ -41,10 +41,10 @@ func SetupTestDatabase(dbType string, db *sql.DB) error {
 			);
 		`
 		if _, err := db.Exec(query); err != nil {
-			logger.Error("failed to create test table for PostgreSQL", zap.Error(err))
+			log("failed to create test table for PostgreSQL", zap.Error(err))
 			return err
 		}
-		logger.Info("PostgreSQL test schema and table created or already exists")
+		log("PostgreSQL test schema and table created or already exists")
 		return nil
 
 	case "redshift":
@@ -56,10 +56,10 @@ func SetupTestDatabase(dbType string, db *sql.DB) error {
 			);
 		`
 		if _, err := db.Exec(query); err != nil {
-			logger.Error("failed to create test table for Redshift", zap.Error(err))
+			log("failed to create test table for Redshift", zap.Error(err))
 			return err
 		}
-		logger.Info("Redshift test table created or already exists")
+		log("Redshift test table created or already exists")
 		return nil
 
 	default:

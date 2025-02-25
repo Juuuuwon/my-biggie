@@ -41,14 +41,14 @@ func ErrorInjectionHandler(c *gin.Context) {
 	// Convert DuckFloat to float64.
 	activeErrorRate = float64(payload.ErrorRate)
 	errorInjectionExpiry = time.Now().Add(time.Duration(durationSec) * time.Second)
-	logger.Info("Error injection started",
+	log("Error injection started",
 		zap.Float64("error_rate", activeErrorRate),
 		zap.Int("duration_sec", durationSec))
 
 	resetFunc := func() {
 		time.Sleep(time.Duration(durationSec) * time.Second)
 		activeErrorRate = 0.0
-		logger.Info("Error injection ended")
+		log("Error injection ended")
 	}
 
 	if payload.Async {
@@ -77,11 +77,11 @@ func CrashSimulationHandler(c *gin.Context) {
 		return
 	}
 	durationSec := int(payload.MaintainSecond)
-	logger.Info("Crash simulation scheduled", zap.Int("maintain_second", durationSec))
+	log("Crash simulation scheduled", zap.Int("maintain_second", durationSec))
 
 	crashFunc := func() {
 		time.Sleep(time.Duration(durationSec) * time.Second)
-		logger.Error("Simulated crash: exiting process")
+		log("Simulated crash: exiting process")
 		os.Exit(1)
 	}
 

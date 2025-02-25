@@ -1,135 +1,91 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
-// A list of possible placeholders for custom log formatting.
-var placeholders = []string{
-	"{{time}}",
-	"{{status_code}}",
-	"{{method}}",
-	"{{path}}",
-	"{{client_ip}}",
-	"{{latency}}",
-	"{{headers}}",
-	"{{cookies}}",
-}
-
-// generateRandomLogFormat automatically creates a random log format string by
-// randomly shuffling placeholders and inserting random separators.
-func generateRandomLogFormat() string {
-	// Shuffle a copy of the placeholders slice.
-	phCopy := make([]string, len(placeholders))
-	copy(phCopy, placeholders)
-	rand.Shuffle(len(phCopy), func(i, j int) {
-		phCopy[i], phCopy[j] = phCopy[j], phCopy[i]
-	})
-	// Decide on a random number of segments (between 3 and 6)
-	n := rand.Intn(4) + 3
-	segments := []string{}
-	for i := 0; i < n && i < len(phCopy); i++ {
-		segments = append(segments, phCopy[i])
-		if i < n-1 {
-			// Append a random separator (with surrounding spaces)
-			segments = append(segments, " "+randomSeparator()+" ")
+// FormatLogMessage builds a log message string based on the LOG_FORMAT environment variable.
+// Supported placeholders:
+//
+//	{{time}}, {{status_code}}, {{method}}, {{path}}, {{client_ip}}, {{latency}}, {{cookies}}.
+func FormatLogMessage(c *gin.Context, latency time.Duration) string {
+	format := viper.GetString("LOG_FORMAT")
+	if format == "" {
+		format = "json"
+	}
+	// If format is RANDOM, generate a random format string.
+	if strings.EqualFold(format, "RANDOM") {
+		placeholders := []string{
+			"[{{time}}]",
+			"{{status_code}}",
+			"{{method}}",
+			"{{path}}",
+			"{{client_ip}}",
+			"latency: {{latency}}",
+			"cookies: {{cookies}}",
+		}
+		randOrder := make([]string, len(placeholders))
+		copy(randOrder, placeholders)
+		// Shuffle the slice.
+		for i := range randOrder {
+			j := i + int(time.Now().UnixNano()%int64(len(randOrder)-i))
+			randOrder[i], randOrder[j] = randOrder[j], randOrder[i]
+		}
+		format = strings.Join(randOrder, " | ")
+	}
+	// Predefined formats.
+	if strings.EqualFold(format, "apache") {
+		format = "{{client_ip}} - - [{{time}}] \"{{method}} {{path}} HTTP/1.1\" {{status_code}} -"
+	} else if strings.EqualFold(format, "nginx") {
+		format = "{{client_ip}} - [{{time}}] \"{{method}} {{path}}\" {{status_code}} {{latency}}"
+	} else if strings.EqualFold(format, "json") {
+		logObj := map[string]interface{}{
+			"time":        time.Now().UTC().Format(time.RFC3339),
+			"status_code": c.Writer.Status(),
+			"method":      c.Request.Method,
+			"path":        c.Request.URL.Path,
+			"client_ip":   c.ClientIP(),
+			"latency":     latency.String(),
+			"cookies":     c.Request.Cookies(),
+		}
+		b, err := json.Marshal(logObj)
+		if err == nil {
+			return string(b)
 		}
 	}
-	return strings.Join(segments, "")
-}
-
-func randomSeparator() string {
-	seps := []string{"-", "|", ":", "~", "/", " "}
-	return seps[rand.Intn(len(seps))]
-}
-
-// getLogFormat returns the log format string based on the LOG_FORMAT environment variable.
-// If LOG_FORMAT is "RANDOM", it automatically generates a random format.
-func getLogFormat() string {
-	format := viper.GetString("LOG_FORMAT")
-	format = strings.TrimSpace(format)
-	if format == "" {
-		// Default to JSON structured logging.
-		return "json"
-	}
-	if strings.ToUpper(format) == "RANDOM" {
-		return generateRandomLogFormat()
-	}
-	return format
-}
-
-// formatLogMessage formats the log message based on the given format string and request context.
-func formatLogMessage(c *gin.Context, latency time.Duration, status int) string {
-	// Prepare placeholder replacements.
+	// For custom formats, replace placeholders.
 	replacements := map[string]string{
-		"{{time}}":        time.Now().UTC().Format(time.RFC3339Nano),
-		"{{status_code}}": fmt.Sprintf("%d", status),
+		"{{time}}":        time.Now().UTC().Format(time.RFC3339),
+		"{{status_code}}": fmt.Sprintf("%d", c.Writer.Status()),
 		"{{method}}":      c.Request.Method,
 		"{{path}}":        c.Request.URL.Path,
 		"{{client_ip}}":   c.ClientIP(),
 		"{{latency}}":     latency.String(),
-		"{{headers}}":     fmt.Sprintf("%v", c.Request.Header),
+		"{{cookies}}":     fmt.Sprintf("%v", c.Request.Cookies()),
 	}
-
-	var cookies []string
-	for _, cookie := range c.Request.Cookies() {
-		cookies = append(cookies, fmt.Sprintf("%s=%s", cookie.Name, cookie.Value))
-	}
-	replacements["{{cookies}}"] = strings.Join(cookies, "; ")
-
-	// Retrieve the log format.
-	format := getLogFormat()
-	if format == "json" {
-		// In JSON mode, we don't need to produce a custom string.
-		return ""
-	}
-
-	// Replace placeholders in the custom format.
-	logMsg := format
+	msg := format
 	for placeholder, value := range replacements {
-		logMsg = strings.ReplaceAll(logMsg, placeholder, value)
+		msg = strings.ReplaceAll(msg, placeholder, value)
 	}
-	return logMsg
+	return msg
 }
 
-// ZapLoggerMiddleware is a Gin middleware that logs API requests using the Zap logger.
-// It uses the LOG_FORMAT environment variable to determine the log format.
-func ZapLoggerMiddleware() gin.HandlerFunc {
-	// Disable Gin debug messages by setting Gin to release mode.
-	gin.SetMode(gin.ReleaseMode)
-
+// LoggerMiddleware logs each API request using our fmt-based logging functions.
+func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		startTime := time.Now()
-		c.Next() // Process the request.
+		c.Next()
 		latency := time.Since(startTime)
-		status := c.Writer.Status()
-
-		// Retrieve the desired log format.
-		format := getLogFormat()
-		if format == "json" {
-			// Structured JSON logging.
-			logger.Info("api request",
-				zap.Int("status", status),
-				zap.String("method", c.Request.Method),
-				zap.String("path", c.Request.URL.Path),
-				zap.String("client_ip", c.ClientIP()),
-				zap.Duration("latency", latency),
-			)
-		} else {
-			// Custom formatted log message.
-			logMsg := formatLogMessage(c, latency, status)
-			logger.Info(logMsg)
-		}
-
+		msg := FormatLogMessage(c, latency)
+		log(msg)
 		if len(c.Errors) > 0 {
-			logger.Error("api error", zap.Any("errors", c.Errors))
+			log("api error", "errors", c.Errors.String())
 		}
 	}
 }

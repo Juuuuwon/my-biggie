@@ -45,7 +45,7 @@ func NetworkLatencyHandler(c *gin.Context) {
 		networkStressMutex.Lock()
 		activeLatencyMs = 0
 		networkStressMutex.Unlock()
-		logger.Info("Network latency simulation ended", zap.Int("latency_ms", latencyMs))
+		log("Network latency simulation ended", zap.Int("latency_ms", latencyMs))
 	}
 
 	if payload.Async {
@@ -92,7 +92,7 @@ func PacketLossHandler(c *gin.Context) {
 		networkStressMutex.Lock()
 		activePacketLoss = 0
 		networkStressMutex.Unlock()
-		logger.Info("Packet loss simulation ended", zap.Int("loss_percentage", lossPercentage))
+		log("Packet loss simulation ended", zap.Int("loss_percentage", lossPercentage))
 	}
 
 	if payload.Async {

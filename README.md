@@ -518,3 +518,23 @@ GET /metrics/system
 ```
 - Provides aggregated system metrics such as CPU load, memory usage, network throughput, and details of ongoing stress tests.
 - Useful for monitoring the overall performance and health of Biggie during various stress scenarios.
+
+---
+
+### Fake Log Generation API
+
+#### Generate Logs
+\`\`\`
+POST /stress/logs
+Content-Type: application/json
+
+{ "maintain_second": 30, "log_count_per_interval": "RANDOM:5:15", "line_per_log": 3, "interval_seconds": 1, "async": true }
+\`\`\`
+
+- Generates log messages over time with random content.
+- The `maintain_second` parameter defines the total duration (in seconds) during which logs are generated.
+- The `log_count_per_interval` parameter specifies the number of log messages to generate per interval. This field supports the RANDOM syntax (e.g., `"RANDOM:5:15"`).
+- The `line_per_log` parameter indicates the number of lines in each generated log message.
+- The `interval_seconds` parameter defines the time interval (in seconds) between each log generation cycle.
+- If `async` is true, the API returns immediately while log generation continues in the background.
+- Each log message is generated using random values for common placeholders (such as time, status code, method, path, client IP, latency, and cookies) according to the current LOG_FORMAT configuration.

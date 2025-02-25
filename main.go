@@ -11,17 +11,14 @@ import (
 )
 
 func main() {
-	// Initialize logger and configuration.
-	initLogger()
-	defer logger.Sync()
 	initConfig()
 
 	// Simulate startup delay based on STARTUP_DELAY_SECOND env variable.
 	startupDelay, err := processRandomInt(viper.GetString("STARTUP_DELAY_SECOND"), 1, 5) // default delay range 1-5 seconds
 	if err != nil {
-		logger.Warn("invalid STARTUP_DELAY_SECOND, defaulting to no delay", zap.Error(err))
+		log("invalid STARTUP_DELAY_SECOND, defaulting to no delay", zap.Error(err))
 	} else {
-		logger.Info("startup delay", zap.Int("delay", startupDelay))
+		log("startup delay", zap.Int("delay", startupDelay))
 		time.Sleep(time.Duration(startupDelay) * time.Second)
 	}
 
@@ -30,7 +27,7 @@ func main() {
 	// Create a Gin router with custom middleware.
 	router := gin.New()
 	router.Use(gin.Recovery())
-	router.Use(ZapLoggerMiddleware())
+	router.Use(LoggerMiddleware())
 	router.Use(RequestBodyMiddleware())
 	router.Use(DowntimeMiddleware)
 	router.Use(NetworkStressMiddleware)
@@ -92,10 +89,11 @@ func main() {
 	router.POST("/stress/ddos", DDoSHandler)
 
 	router.GET("/metrics/system", SystemMetricsHandler)
+	router.POST("/stress/logs", LogsGeneratorHandler)
 
 	// Determine port using environment variable (with RANDOM support).
 	port := processPort()
-	logger.Info("starting server", zap.Int("port", port))
+	log("starting server", zap.Int("port", port))
 	router.Run(":" + intToString(port))
 }
 

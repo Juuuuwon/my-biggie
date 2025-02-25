@@ -76,20 +76,20 @@ func MySQLHeavyHandler(c *gin.Context) {
 			for i := 0; i < queryPerInterval; i++ {
 				if payload.Reads {
 					if _, err := db.Query("SELECT 1"); err != nil {
-						logger.Error("MySQL heavy read query failed", zap.Error(err))
+						log("MySQL heavy read query failed", zap.Error(err))
 					}
 				}
 				if payload.Writes {
 					// Assumes table "biggie_test_table" exists.
 					if _, err := db.Exec("INSERT INTO biggie_test_table(value) VALUES('stress')"); err != nil {
-						logger.Error("MySQL heavy write query failed", zap.Error(err))
+						log("MySQL heavy write query failed", zap.Error(err))
 					}
 				}
 			}
 			time.Sleep(time.Duration(intervalSec) * time.Second)
 		}
 		db.Close()
-		logger.Info("MySQL heavy query (single connection) completed", zap.Int("duration_sec", maintainSec))
+		log("MySQL heavy query (single connection) completed", zap.Int("duration_sec", maintainSec))
 	}
 
 	if payload.Async {
@@ -139,12 +139,12 @@ func MySQLMultiHeavyHandler(c *gin.Context) {
 				defer wg.Done()
 				db, err := sql.Open("mysql", dsn)
 				if err != nil {
-					logger.Error("MySQL multi heavy connection open failed", zap.Int("conn", connNum), zap.Error(err))
+					log("MySQL multi heavy connection open failed", zap.Int("conn", connNum), zap.Error(err))
 					return
 				}
 				defer db.Close()
 				if err = db.Ping(); err != nil {
-					logger.Error("MySQL multi heavy ping failed", zap.Int("conn", connNum), zap.Error(err))
+					log("MySQL multi heavy ping failed", zap.Int("conn", connNum), zap.Error(err))
 					return
 				}
 				endTime := time.Now().Add(time.Duration(maintainSec) * time.Second)
@@ -152,12 +152,12 @@ func MySQLMultiHeavyHandler(c *gin.Context) {
 					for j := 0; j < queryPerInterval; j++ {
 						if payload.Reads {
 							if _, err := db.Query("SELECT 1"); err != nil {
-								logger.Error("MySQL multi heavy read query failed", zap.Int("conn", connNum), zap.Error(err))
+								log("MySQL multi heavy read query failed", zap.Int("conn", connNum), zap.Error(err))
 							}
 						}
 						if payload.Writes {
 							if _, err := db.Exec("INSERT INTO biggie_test_table(value) VALUES('stress')"); err != nil {
-								logger.Error("MySQL multi heavy write query failed", zap.Int("conn", connNum), zap.Error(err))
+								log("MySQL multi heavy write query failed", zap.Int("conn", connNum), zap.Error(err))
 							}
 						}
 					}
@@ -166,7 +166,7 @@ func MySQLMultiHeavyHandler(c *gin.Context) {
 			}(i)
 		}
 		wg.Wait()
-		logger.Info("MySQL multi heavy query completed", zap.Int("connections", connectionCounts))
+		log("MySQL multi heavy query completed", zap.Int("connections", connectionCounts))
 	}
 
 	if payload.Async {
@@ -226,11 +226,11 @@ func MySQLConnectionHandler(c *gin.Context) {
 				for i := 0; i < increasePerInterval && currentCount < connectionCounts; i++ {
 					db, err := sql.Open("mysql", dsn)
 					if err != nil {
-						logger.Error("MySQL connection stress open failed", zap.Error(err))
+						log("MySQL connection stress open failed", zap.Error(err))
 						continue
 					}
 					if err = db.Ping(); err != nil {
-						logger.Error("MySQL connection stress ping failed", zap.Error(err))
+						log("MySQL connection stress ping failed", zap.Error(err))
 						db.Close()
 						continue
 					}
@@ -263,7 +263,7 @@ func MySQLConnectionHandler(c *gin.Context) {
 			db.Close()
 		}
 		mu.Unlock()
-		logger.Info("MySQL connection stress completed", zap.Int("connections", currentCount))
+		log("MySQL connection stress completed", zap.Int("connections", currentCount))
 	}
 
 	if payload.Async {

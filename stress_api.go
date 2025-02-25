@@ -81,7 +81,7 @@ func runCPUStress(cpuPercent, maintainSec int) {
 		}
 		time.Sleep(sleepTime)
 	}
-	logger.Info("CPU stress test completed",
+	log("CPU stress test completed",
 		zap.Int("cpu_percent", cpuPercent),
 		zap.Int("duration_sec", maintainSec))
 }
@@ -125,7 +125,7 @@ func runMemoryStress(memoryPercent, maintainSec int) {
 	}
 	// Hold the allocation for the specified duration.
 	time.Sleep(time.Duration(maintainSec) * time.Second)
-	logger.Info("Memory stress test completed",
+	log("Memory stress test completed",
 		zap.Int("memory_percent", memoryPercent),
 		zap.Int("duration_sec", maintainSec))
 	// The allocated memory will be freed when this function returns.
@@ -182,7 +182,7 @@ func runMemoryLeak(leakSizeMB, maintainSec int) {
 			memoryLeakStore = append(memoryLeakStore, memBlock)
 			memoryLeakMutex.Unlock()
 		case <-done:
-			logger.Info("Memory leak simulation completed", zap.Int("leak_size_mb", leakSizeMB))
+			log("Memory leak simulation completed", zap.Int("leak_size_mb", leakSizeMB))
 			return
 		}
 	}
