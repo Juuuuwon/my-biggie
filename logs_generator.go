@@ -62,11 +62,13 @@ func GenerateRandomLogMessage() string {
 			msVal, _ := strconv.Atoi(strings.TrimSuffix(val, "ms"))
 			switch strings.ToLower(unit) {
 			case "ns":
-				return strconv.FormatInt(int64(msVal)*1e6, 10)
+				return strconv.FormatInt(int64(msVal)*1000*1000, 10)
+			case "mcs":
+				return strconv.FormatInt(int64(msVal)*1000, 10)
 			case "ms":
 				return strconv.Itoa(msVal)
 			case "s":
-				return fmt.Sprintf("%.2f", float64(msVal)/1000)
+				return fmt.Sprintf("%f", float64(msVal)/1000)
 			default:
 				// Human readable with unit label.
 				return fmt.Sprintf("%dms", msVal)
@@ -75,11 +77,11 @@ func GenerateRandomLogMessage() string {
 			numVal, _ := strconv.Atoi(val)
 			switch strings.ToLower(unit) {
 			case "kb":
-				return fmt.Sprintf("%.3f", float64(numVal)/1024)
+				return fmt.Sprintf("%f", float64(numVal)/1024)
 			case "mb":
-				return fmt.Sprintf("%.3f", float64(numVal)/(1024*1024))
+				return fmt.Sprintf("%f", float64(numVal)/(1024*1024))
 			case "gb":
-				return fmt.Sprintf("%.3f", float64(numVal)/(1024*1024*1024))
+				return fmt.Sprintf("%f", float64(numVal)/(1024*1024*1024))
 			default:
 				return fmt.Sprintf("%dB", numVal)
 			}

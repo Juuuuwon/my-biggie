@@ -43,18 +43,24 @@ func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (
 	case "latency":
 		switch strings.ToLower(unitSpec) {
 		case "ns":
-			val = strconv.FormatInt(latency.Nanoseconds(), 10)
+			val = fmt.Sprintf("%f", float64(latency.Nanoseconds()))
+		case "mcs":
+			val = fmt.Sprintf("%f", float64(latency.Nanoseconds())/1000)
 		case "ms":
-			val = strconv.FormatInt(latency.Milliseconds(), 10)
+			val = fmt.Sprintf("%f", float64(latency.Nanoseconds())/1000/1000)
 		case "s":
-			val = fmt.Sprintf("%.2f", latency.Seconds())
+			val = fmt.Sprintf("%f", float64(latency.Nanoseconds())/1000/1000/1000)
 		default:
 			// If no unit provided, convert to a human-readable unit.
-			ms := float64(latency.Milliseconds())
-			if ms >= 1000 {
-				val = fmt.Sprintf("%.3fs", ms/1000)
+			ns := float64(latency.Nanoseconds())
+			if ns >= 1000*1000*1000 {
+				val = fmt.Sprintf("%fs", ns/1000/1000/1000)
+			} else if ns >= 1000*1000 {
+				val = fmt.Sprintf("%fms", ns/1000/1000)
+			} else if ns >= 1000 {
+				val = fmt.Sprintf("%fμs", ns/1000)
 			} else {
-				val = fmt.Sprintf("%.3fms", ms)
+				val = fmt.Sprintf("%fns", ns)
 			}
 		}
 	case "user_agent":
@@ -65,19 +71,19 @@ func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (
 		size := c.Request.ContentLength
 		switch strings.ToLower(unitSpec) {
 		case "kb":
-			val = fmt.Sprintf("%.3f", float64(size)/1024)
+			val = fmt.Sprintf("%f", float64(size)/1024)
 		case "mb":
-			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024))
+			val = fmt.Sprintf("%f", float64(size)/(1024*1024))
 		case "gb":
-			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024*1024))
+			val = fmt.Sprintf("%f", float64(size)/(1024*1024*1024))
 		default:
 			// Human-readable conversion:
 			if size >= 1024*1024*1024 {
-				val = fmt.Sprintf("%.3fGB", float64(size)/(1024*1024*1024))
+				val = fmt.Sprintf("%fGB", float64(size)/(1024*1024*1024))
 			} else if size >= 1024*1024 {
-				val = fmt.Sprintf("%.3fMB", float64(size)/(1024*1024))
+				val = fmt.Sprintf("%fMB", float64(size)/(1024*1024))
 			} else if size >= 1024 {
-				val = fmt.Sprintf("%.3fKB", float64(size)/1024)
+				val = fmt.Sprintf("%fKB", float64(size)/1024)
 			} else {
 				val = fmt.Sprintf("%dB", size)
 			}
@@ -86,18 +92,18 @@ func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (
 		size := c.Writer.Size()
 		switch strings.ToLower(unitSpec) {
 		case "kb":
-			val = fmt.Sprintf("%.3f", float64(size)/1024)
+			val = fmt.Sprintf("%f", float64(size)/1024)
 		case "mb":
-			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024))
+			val = fmt.Sprintf("%f", float64(size)/(1024*1024))
 		case "gb":
-			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024*1024))
+			val = fmt.Sprintf("%f", float64(size)/(1024*1024*1024))
 		default:
 			if size >= 1024*1024*1024 {
-				val = fmt.Sprintf("%.3fGB", float64(size)/(1024*1024*1024))
+				val = fmt.Sprintf("%fGB", float64(size)/(1024*1024*1024))
 			} else if size >= 1024*1024 {
-				val = fmt.Sprintf("%.3fMB", float64(size)/(1024*1024))
+				val = fmt.Sprintf("%fMB", float64(size)/(1024*1024))
 			} else if size >= 1024 {
-				val = fmt.Sprintf("%.3fKB", float64(size)/1024)
+				val = fmt.Sprintf("%fKB", float64(size)/1024)
 			} else {
 				val = fmt.Sprintf("%dB", size)
 			}

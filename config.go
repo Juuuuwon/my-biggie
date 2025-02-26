@@ -71,8 +71,8 @@ func generateRandomGlobalLogFormat() string {
 				placeholders[i] = "{time}"
 			}
 		case "latency":
-			// Randomly choose from s, ms, micros, ns.
-			units := []string{"s", "ms", "micros", "ns"}
+			// Randomly choose from s, ms, mcs, ns.
+			units := []string{"s", "ms", "mcs", "ns"}
 			placeholders[i] = fmt.Sprintf("{latency:%s}", units[rand.Intn(len(units))])
 		case "request_size", "response_size":
 			// Randomly choose from b, kb, mb, gb.

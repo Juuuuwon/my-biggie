@@ -171,7 +171,7 @@ Supported placeholder names (case-insensitive):
 - **path** – The requested URL path.
 - **client_ip** – The client's IP address.
 - **latency** – The time taken to process the request.  
-  Supported units: `s`, `ms`, `micros` (microseconds), `ns` (nanoseconds).  
+  Supported units: `s`, `ms`, `mcs` (microseconds), `ns` (nanoseconds).  
   If omitted, a human-readable value with unit label is provided (e.g., `10.001s`).
 - **user_agent** – The User-Agent header value.
 - **protocol** – The HTTP protocol (e.g., `HTTP/1.1`, `HTTP/2`).
