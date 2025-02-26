@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,9 +34,14 @@ func main() {
 	router.Use(NetworkStressMiddleware)
 	router.Use(ErrorInjectionMiddleware)
 
-	router.GET("/", func(ctx *gin.Context) {
-		ctx.Header("Content-Type", "text/html")
-		ctx.String(200, frontendCode)
+	router.StaticFS("/static", http.FS(staticContent))
+	router.GET("/", func(c *gin.Context) {
+		data, err := staticContent.ReadFile("static/index.html")
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+		c.Data(http.StatusOK, "text/html; charset=utf-8", data)
 	})
 
 	router.GET("/simple", SimpleHandler)
@@ -47,7 +53,7 @@ func main() {
 	router.GET("/healthcheck", HealthCheckHandler)
 	router.GET("/healthcheck/slow", SlowHealthCheckHandler)
 	router.GET("/healthcheck/external", ExternalHealthHandler)
-	router.POST("/healthcheck/hops", RelayHandler)
+	router.POST("/healthcheck/relay", RelayHandler)
 
 	router.GET("/metadata/all", MetadataAllHandler)
 	router.GET("/metadata/revision_color", RevisionColorHandler)

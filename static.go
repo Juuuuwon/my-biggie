@@ -1,6 +1,8 @@
 package main
 
-import _ "embed"
+import (
+	"embed"
+)
 
-//go:embed frontend.html
-var frontendCode string
+//go:embed static/*
+var staticContent embed.FS
