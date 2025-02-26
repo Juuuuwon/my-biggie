@@ -43,7 +43,7 @@ type MySQLConfig struct {
 	Password string `json:"password"`
 	Engine   string `json:"engine"`
 	Host     string `json:"host"`
-	Port     int    `json:"port"`
+	Port     int    `json:"port,string"`
 	DBName   string `json:"dbname"`
 }
 
@@ -99,7 +99,7 @@ type PostgresConfig struct {
 	Password string `json:"password"`
 	Engine   string `json:"engine"`
 	Host     string `json:"host"`
-	Port     int    `json:"port"`
+	Port     int    `json:"port,string"`
 	DBName   string `json:"dbname"`
 }
 
@@ -155,7 +155,7 @@ type RedshiftConfig struct {
 	Password string `json:"password"`
 	Engine   string `json:"engine"`
 	Host     string `json:"host"`
-	Port     int    `json:"port"`
+	Port     int    `json:"port,string"`
 	DBName   string `json:"dbname"`
 }
 
