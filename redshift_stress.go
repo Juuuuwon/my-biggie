@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -71,6 +72,10 @@ func RedshiftHeavyHandler(c *gin.Context) {
 		return
 	}
 
+	if err := SetupTestDatabase("redshift", db); err != nil {
+		ErrorJSON(c, http.StatusInternalServerError, "SETUP_TEST_DB_ERROR", err.Error())
+		return
+	}
 	stressFunc := func() {
 		endTime := time.Now().Add(time.Duration(maintainSec) * time.Second)
 		for time.Now().Before(endTime) {
@@ -147,6 +152,10 @@ func RedshiftMultiHeavyHandler(c *gin.Context) {
 				defer db.Close()
 				if err = db.Ping(); err != nil {
 					fmt.Println("Redshift multi heavy ping failed", zap.Int("conn", connNum), zap.Error(err))
+					return
+				}
+				if err := SetupTestDatabase("redshift", db); err != nil {
+					ErrorJSON(c, http.StatusInternalServerError, "SETUP_TEST_DB_ERROR", err.Error())
 					return
 				}
 				endTime := time.Now().Add(time.Duration(maintainSec) * time.Second)
@@ -236,6 +245,10 @@ func RedshiftConnectionHandler(c *gin.Context) {
 						fmt.Println("Redshift connection stress ping failed", zap.Error(err))
 						db.Close()
 						continue
+					}
+					if err := SetupTestDatabase("redshift", db); err != nil {
+						ErrorJSON(c, http.StatusInternalServerError, "SETUP_TEST_DB_ERROR", err.Error())
+						return
 					}
 					mu.Lock()
 					connections = append(connections, db)

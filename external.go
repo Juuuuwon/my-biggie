@@ -1,12 +1,41 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	sm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/spf13/viper"
 )
+
+// fetchSecret retrieves a secret string from AWS Secrets Manager.
+func fetchSecret(secretName string, region string) (string, error) {
+	// Load default AWS configuration for the provided region.
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		return "", err
+	}
+
+	client := sm.NewFromConfig(cfg)
+	input := &sm.GetSecretValueInput{
+		SecretId: aws.String(secretName),
+	}
+
+	result, err := client.GetSecretValue(context.TODO(), input)
+	if err != nil {
+		return "", err
+	}
+
+	if result.SecretString == nil {
+		return "", errors.New("secret string is nil")
+	}
+
+	return *result.SecretString, nil
+}
 
 // MySQLConfig holds credentials for MySQL connections.
 type MySQLConfig struct {
@@ -19,20 +48,22 @@ type MySQLConfig struct {
 }
 
 // GetMySQLConfig retrieves MySQL configuration in the following order:
-// 1. MYSQL_SECRET and AWS_REGION (retrieved from a secrets manager)
+// 1. MYSQL_SECRET and AWS_REGION (retrieved from AWS Secrets Manager)
 // 2. MYSQL_DBINFO (JSON credentials)
 // 3. Individual variables: MYSQL_HOST, MYSQL_PORT, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DBNAME
 func GetMySQLConfig() (*MySQLConfig, error) {
-	// Priority 1: MYSQL_SECRET (with AWS_REGION)
-	if viper.IsSet("MYSQL_SECRET") && viper.IsSet("AWS_REGION") {
-		secretStr := viper.GetString("MYSQL_SECRET")
-		var cfg MySQLConfig
-		if err := json.Unmarshal([]byte(secretStr), &cfg); err != nil {
-			return nil, err
+	region := viper.GetString("AWS_REGION")
+	if region != "" && viper.IsSet("MYSQL_SECRET") {
+		secretName := viper.GetString("MYSQL_SECRET")
+		secretStr, err := fetchSecret(secretName, region)
+		if err == nil {
+			var cfg MySQLConfig
+			if err := json.Unmarshal([]byte(secretStr), &cfg); err == nil {
+				return &cfg, nil
+			}
 		}
-		return &cfg, nil
 	}
-	// Priority 2: MYSQL_DBINFO
+
 	if viper.IsSet("MYSQL_DBINFO") {
 		dbinfoStr := viper.GetString("MYSQL_DBINFO")
 		var cfg MySQLConfig
@@ -41,7 +72,7 @@ func GetMySQLConfig() (*MySQLConfig, error) {
 		}
 		return &cfg, nil
 	}
-	// Priority 3: Individual variables
+
 	host := viper.GetString("MYSQL_HOST")
 	if host == "" {
 		return nil, errors.New("MySQL configuration not found")
@@ -50,6 +81,7 @@ func GetMySQLConfig() (*MySQLConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cfg := &MySQLConfig{
 		Username: viper.GetString("MYSQL_USERNAME"),
 		Password: viper.GetString("MYSQL_PASSWORD"),
@@ -58,7 +90,6 @@ func GetMySQLConfig() (*MySQLConfig, error) {
 		Port:     port,
 		DBName:   viper.GetString("MYSQL_DBNAME"),
 	}
-	// TODO: Automatically create schemas/tables for testing if needed.
 	return cfg, nil
 }
 
@@ -77,14 +108,18 @@ type PostgresConfig struct {
 // 2. POSTGRES_DBINFO (JSON credentials)
 // 3. Individual variables: POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USERNAME, POSTGRES_PASSWORD, POSTGRES_DBNAME
 func GetPostgresConfig() (*PostgresConfig, error) {
-	if viper.IsSet("POSTGRES_SECRET") && viper.IsSet("AWS_REGION") {
-		secretStr := viper.GetString("POSTGRES_SECRET")
-		var cfg PostgresConfig
-		if err := json.Unmarshal([]byte(secretStr), &cfg); err != nil {
-			return nil, err
+	region := viper.GetString("AWS_REGION")
+	if region != "" && viper.IsSet("POSTGRES_SECRET") {
+		secretName := viper.GetString("POSTGRES_SECRET")
+		secretStr, err := fetchSecret(secretName, region)
+		if err == nil {
+			var cfg PostgresConfig
+			if err := json.Unmarshal([]byte(secretStr), &cfg); err == nil {
+				return &cfg, nil
+			}
 		}
-		return &cfg, nil
 	}
+
 	if viper.IsSet("POSTGRES_DBINFO") {
 		dbinfoStr := viper.GetString("POSTGRES_DBINFO")
 		var cfg PostgresConfig
@@ -93,6 +128,7 @@ func GetPostgresConfig() (*PostgresConfig, error) {
 		}
 		return &cfg, nil
 	}
+
 	host := viper.GetString("POSTGRES_HOST")
 	if host == "" {
 		return nil, errors.New("PostgreSQL configuration not found")
@@ -101,6 +137,7 @@ func GetPostgresConfig() (*PostgresConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cfg := &PostgresConfig{
 		Username: viper.GetString("POSTGRES_USERNAME"),
 		Password: viper.GetString("POSTGRES_PASSWORD"),
@@ -109,7 +146,6 @@ func GetPostgresConfig() (*PostgresConfig, error) {
 		Port:     port,
 		DBName:   viper.GetString("POSTGRES_DBNAME"),
 	}
-	// TODO: Automatically create schemas/tables for testing if needed.
 	return cfg, nil
 }
 
@@ -128,14 +164,18 @@ type RedshiftConfig struct {
 // 2. REDSHIFT_DBINFO (JSON credentials)
 // 3. Individual variables: REDSHIFT_HOST, REDSHIFT_PORT, REDSHIFT_USERNAME, REDSHIFT_PASSWORD, REDSHIFT_DBNAME
 func GetRedshiftConfig() (*RedshiftConfig, error) {
-	if viper.IsSet("REDSHIFT_SECRET") && viper.IsSet("AWS_REGION") {
-		secretStr := viper.GetString("REDSHIFT_SECRET")
-		var cfg RedshiftConfig
-		if err := json.Unmarshal([]byte(secretStr), &cfg); err != nil {
-			return nil, err
+	region := viper.GetString("AWS_REGION")
+	if region != "" && viper.IsSet("REDSHIFT_SECRET") {
+		secretName := viper.GetString("REDSHIFT_SECRET")
+		secretStr, err := fetchSecret(secretName, region)
+		if err == nil {
+			var cfg RedshiftConfig
+			if err := json.Unmarshal([]byte(secretStr), &cfg); err == nil {
+				return &cfg, nil
+			}
 		}
-		return &cfg, nil
 	}
+
 	if viper.IsSet("REDSHIFT_DBINFO") {
 		dbinfoStr := viper.GetString("REDSHIFT_DBINFO")
 		var cfg RedshiftConfig
@@ -144,6 +184,7 @@ func GetRedshiftConfig() (*RedshiftConfig, error) {
 		}
 		return &cfg, nil
 	}
+
 	host := viper.GetString("REDSHIFT_HOST")
 	if host == "" {
 		return nil, errors.New("Redshift configuration not found")
@@ -152,6 +193,7 @@ func GetRedshiftConfig() (*RedshiftConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cfg := &RedshiftConfig{
 		Username: viper.GetString("REDSHIFT_USERNAME"),
 		Password: viper.GetString("REDSHIFT_PASSWORD"),
@@ -160,7 +202,6 @@ func GetRedshiftConfig() (*RedshiftConfig, error) {
 		Port:     port,
 		DBName:   viper.GetString("REDSHIFT_DBNAME"),
 	}
-	// TODO: Automatically create schemas/tables for testing if needed.
 	return cfg, nil
 }
 
@@ -171,8 +212,7 @@ type RedisConfig struct {
 	TLSEnabled bool
 }
 
-// GetRedisConfig retrieves Redis configuration using individual variables:
-// REDIS_HOST, REDIS_PORT, and REDIS_TLS_ENABLED.
+// GetRedisConfig retrieves Redis configuration using individual variables: REDIS_HOST, REDIS_PORT, REDIS_TLS_ENABLED.
 func GetRedisConfig() (*RedisConfig, error) {
 	host := viper.GetString("REDIS_HOST")
 	if host == "" {
@@ -198,8 +238,7 @@ type KafkaConfig struct {
 	Topic      string
 }
 
-// GetKafkaConfig retrieves Kafka configuration using individual variables:
-// KAFKA_SERVERS, KAFKA_TLS_ENABLED, and KAFKA_TOPIC.
+// GetKafkaConfig retrieves Kafka configuration using individual variables: KAFKA_SERVERS, KAFKA_TLS_ENABLED, KAFKA_TOPIC.
 func GetKafkaConfig() (*KafkaConfig, error) {
 	serversStr := viper.GetString("KAFKA_SERVERS")
 	if serversStr == "" {

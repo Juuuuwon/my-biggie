@@ -89,22 +89,19 @@ func getEKSMetadata() map[string]interface{} {
 	return eks
 }
 
-// extractRevisionFromECS attempts to extract the task definition revision from ECS metadata.
-// It looks for a "TaskARN" field and expects the format:
-// arn:aws:ecs:region:account-id:task-definition/family:revision
+// extractRevisionFromECS extracts the task definition revision from ECS metadata.
+// It first looks for a top-level "Revision" field.
+// If not found, it falls back to checking the first container's labels.
 func extractRevisionFromECS(ecsMeta map[string]interface{}) string {
-	if taskARN, ok := ecsMeta["TaskARN"].(string); ok {
-		// Split the ARN on ":"; the last segment after "task-definition/family" should be the revision.
-		parts := strings.Split(taskARN, ":")
-		if len(parts) >= 6 {
-			// parts[5] should be "task-definition/family" and revision appended; split on "/" then on ":"
-			subparts := strings.Split(parts[5], "/")
-			if len(subparts) == 2 {
-				familyRevision := subparts[1]
-				// familyRevision should be in the format family:revision; split by ":"
-				frParts := strings.Split(familyRevision, ":")
-				if len(frParts) == 2 {
-					return frParts[1]
+	if rev, ok := ecsMeta["Revision"].(string); ok && rev != "" {
+		return rev
+	}
+	// Fallback: Check the first container's labels.
+	if containers, ok := ecsMeta["Containers"].([]interface{}); ok && len(containers) > 0 {
+		if container, ok := containers[0].(map[string]interface{}); ok {
+			if labels, ok := container["Labels"].(map[string]interface{}); ok {
+				if version, ok := labels["com.amazonaws.ecs.task-definition-version"].(string); ok && version != "" {
+					return version
 				}
 			}
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -67,6 +68,11 @@ func PostgresHeavyHandler(c *gin.Context) {
 	}
 	if err = db.Ping(); err != nil {
 		ErrorJSON(c, 500, "DB_ERROR", err.Error())
+		return
+	}
+
+	if err := SetupTestDatabase("postgres", db); err != nil {
+		ErrorJSON(c, http.StatusInternalServerError, "SETUP_TEST_DB_ERROR", err.Error())
 		return
 	}
 
@@ -148,6 +154,12 @@ func PostgresMultiHeavyHandler(c *gin.Context) {
 					fmt.Println("Postgres multi heavy ping failed", zap.Int("conn", connNum), zap.Error(err))
 					return
 				}
+
+				if err := SetupTestDatabase("postgres", db); err != nil {
+					ErrorJSON(c, http.StatusInternalServerError, "SETUP_TEST_DB_ERROR", err.Error())
+					return
+				}
+
 				endTime := time.Now().Add(time.Duration(maintainSec) * time.Second)
 				for time.Now().Before(endTime) {
 					for j := 0; j < queryPerInterval; j++ {
@@ -235,6 +247,12 @@ func PostgresConnectionHandler(c *gin.Context) {
 						db.Close()
 						continue
 					}
+
+					if err := SetupTestDatabase("postgres", db); err != nil {
+						ErrorJSON(c, http.StatusInternalServerError, "SETUP_TEST_DB_ERROR", err.Error())
+						return
+					}
+
 					mu.Lock()
 					connections = append(connections, db)
 					currentCount++
