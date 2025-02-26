@@ -13,6 +13,23 @@ import (
 // placeholderRegex matches substrings like {<placeholder>} or {<placeholder>:<unit>}
 var placeholderRegex = regexp.MustCompile(`\{([^}]+)\}`)
 
+// loggingWriter wraps gin.ResponseWriter to capture the total number of bytes written.
+type loggingWriter struct {
+	gin.ResponseWriter
+	totalSize int
+}
+
+func (lw *loggingWriter) Write(data []byte) (int, error) {
+	n, err := lw.ResponseWriter.Write(data)
+	lw.totalSize += n
+	return n, err
+}
+
+func (lw *loggingWriter) Size() int {
+	// Return the recorded size if greater than or equal to zero.
+	return lw.totalSize
+}
+
 // resolvePlaceholder processes a single placeholder (e.g., "latency:ms" or "time:%Y-%m-%dT%H:%M:%S")
 // and returns its string representation using actual request values.
 func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (string, error) {
@@ -43,24 +60,23 @@ func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (
 	case "latency":
 		switch strings.ToLower(unitSpec) {
 		case "ns":
-			val = fmt.Sprintf("%f", float64(latency.Nanoseconds()))
+			val = fmt.Sprintf("%g", float64(latency.Nanoseconds()))
 		case "mcs":
-			val = fmt.Sprintf("%f", float64(latency.Nanoseconds())/1000)
+			val = fmt.Sprintf("%g", float64(latency.Nanoseconds())/1000)
 		case "ms":
-			val = fmt.Sprintf("%f", float64(latency.Nanoseconds())/1000/1000)
+			val = fmt.Sprintf("%g", float64(latency.Nanoseconds())/1000/1000)
 		case "s":
-			val = fmt.Sprintf("%f", float64(latency.Nanoseconds())/1000/1000/1000)
+			val = fmt.Sprintf("%g", float64(latency.Nanoseconds())/1000/1000/1000)
 		default:
-			// If no unit provided, convert to a human-readable unit.
 			ns := float64(latency.Nanoseconds())
 			if ns >= 1000*1000*1000 {
-				val = fmt.Sprintf("%fs", ns/1000/1000/1000)
+				val = fmt.Sprintf("%gs", ns/1000/1000/1000)
 			} else if ns >= 1000*1000 {
-				val = fmt.Sprintf("%fms", ns/1000/1000)
+				val = fmt.Sprintf("%gms", ns/1000/1000)
 			} else if ns >= 1000 {
-				val = fmt.Sprintf("%fμs", ns/1000)
+				val = fmt.Sprintf("%gμs", ns/1000)
 			} else {
-				val = fmt.Sprintf("%fns", ns)
+				val = fmt.Sprintf("%gns", ns)
 			}
 		}
 	case "user_agent":
@@ -71,19 +87,18 @@ func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (
 		size := c.Request.ContentLength
 		switch strings.ToLower(unitSpec) {
 		case "kb":
-			val = fmt.Sprintf("%f", float64(size)/1024)
+			val = fmt.Sprintf("%g", float64(size)/1024)
 		case "mb":
-			val = fmt.Sprintf("%f", float64(size)/(1024*1024))
+			val = fmt.Sprintf("%g", float64(size)/(1024*1024))
 		case "gb":
-			val = fmt.Sprintf("%f", float64(size)/(1024*1024*1024))
+			val = fmt.Sprintf("%g", float64(size)/(1024*1024*1024))
 		default:
-			// Human-readable conversion:
 			if size >= 1024*1024*1024 {
-				val = fmt.Sprintf("%fGB", float64(size)/(1024*1024*1024))
+				val = fmt.Sprintf("%gGB", float64(size)/(1024*1024*1024))
 			} else if size >= 1024*1024 {
-				val = fmt.Sprintf("%fMB", float64(size)/(1024*1024))
+				val = fmt.Sprintf("%gMB", float64(size)/(1024*1024))
 			} else if size >= 1024 {
-				val = fmt.Sprintf("%fKB", float64(size)/1024)
+				val = fmt.Sprintf("%gKB", float64(size)/1024)
 			} else {
 				val = fmt.Sprintf("%dB", size)
 			}
@@ -92,18 +107,18 @@ func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (
 		size := c.Writer.Size()
 		switch strings.ToLower(unitSpec) {
 		case "kb":
-			val = fmt.Sprintf("%f", float64(size)/1024)
+			val = fmt.Sprintf("%g", float64(size)/1024)
 		case "mb":
-			val = fmt.Sprintf("%f", float64(size)/(1024*1024))
+			val = fmt.Sprintf("%g", float64(size)/(1024*1024))
 		case "gb":
-			val = fmt.Sprintf("%f", float64(size)/(1024*1024*1024))
+			val = fmt.Sprintf("%g", float64(size)/(1024*1024*1024))
 		default:
 			if size >= 1024*1024*1024 {
-				val = fmt.Sprintf("%fGB", float64(size)/(1024*1024*1024))
+				val = fmt.Sprintf("%gGB", float64(size)/(1024*1024*1024))
 			} else if size >= 1024*1024 {
-				val = fmt.Sprintf("%fMB", float64(size)/(1024*1024))
+				val = fmt.Sprintf("%gMB", float64(size)/(1024*1024))
 			} else if size >= 1024 {
-				val = fmt.Sprintf("%fKB", float64(size)/1024)
+				val = fmt.Sprintf("%gKB", float64(size)/1024)
 			} else {
 				val = fmt.Sprintf("%dB", size)
 			}
@@ -131,11 +146,9 @@ func convertTimeFormat(format string) string {
 	return result
 }
 
-// FormatLogMessage constructs the log message using globalLogFormat.
+// FormatLogMessage constructs the log message using the globalLogFormat.
 func FormatLogMessage(c *gin.Context, latency time.Duration) string {
 	format := globalLogFormat
-	// For predefined formats, we assume they are custom defined in globalLogFormat.
-	// Replace all placeholders in the format.
 	result := placeholderRegex.ReplaceAllStringFunc(format, func(match string) string {
 		content := strings.Trim(match, "{}")
 		val, err := resolvePlaceholder(content, c, latency)
@@ -147,11 +160,16 @@ func FormatLogMessage(c *gin.Context, latency time.Duration) string {
 	return result
 }
 
-// LoggerMiddleware logs each API request using the global log format.
+// LoggerMiddleware wraps the ResponseWriter and logs after the response is finished.
 func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Wrap ResponseWriter to capture size.
+		lw := &loggingWriter{ResponseWriter: c.Writer}
+		c.Writer = lw
 		start := time.Now()
 		c.Next()
+		// Force flush headers.
+		c.Writer.WriteHeaderNow()
 		latency := time.Since(start)
 		msg := FormatLogMessage(c, latency)
 		fmt.Println(msg)
