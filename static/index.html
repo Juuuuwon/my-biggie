@@ -182,7 +182,7 @@
         </div>
 
         <div class="bg-white p-4 rounded shadow mb-4">
-          <h3 class="font-semibold text-lg">POST /healthcheck/hops</h3>
+          <h3 class="font-semibold text-lg">POST /healthcheck/relay</h3>
           <p class="text-sm text-gray-600 mb-2">
             Relay an HTTP request to another service by providing the target URL, HTTP method, headers, and body.
           </p>
@@ -2040,7 +2040,7 @@
               body: formData.get("body")
             };
             const output = document.getElementById("output-relay");
-            const result = await apiCall("POST", "/healthcheck/hops", data);
+            const result = await apiCall("POST", "/healthcheck/relay", data);
             if (typeof result === "object") {
               output.value = JSON.stringify(result, null, 2);
             } else {
