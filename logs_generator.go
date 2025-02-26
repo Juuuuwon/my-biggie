@@ -1,19 +1,18 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 )
 
-// LogsGeneratorPayload defines the JSON payload for generating logs.
+// LogsGeneratorPayload defines the payload for generating fake log messages.
 type LogsGeneratorPayload struct {
 	MaintainSecond      DuckInt `json:"maintain_second"`
 	LogCountPerInterval DuckInt `json:"log_count_per_interval"`
@@ -22,87 +21,83 @@ type LogsGeneratorPayload struct {
 	Async               bool    `json:"async"`
 }
 
-// generateRandomLog creates a log message using random values and the LOG_FORMAT configuration.
-// Supported placeholders: {{time}}, {{status_code}}, {{method}}, {{path}}, {{client_ip}}, {{latency}}, {{cookies}}
-func generateRandomLog() string {
-	now := time.Now().UTC().Format(time.RFC3339)
-	statusCodes := []int{200, 201, 400, 401, 404, 500}
-	methodList := []string{"GET", "POST", "PUT", "DELETE"}
-	paths := []string{"/api/random", "/test", "/stress", "/metrics"}
-	clientIPs := []string{"192.168.1.1", "10.0.0.5", "172.16.0.3"}
-	latency := time.Duration(rand.Intn(500)) * time.Millisecond
-	cookies := "[cookie1=value1; cookie2=value2]"
+// GenerateRandomLogMessage creates a random log message using globalLogFormat
+// and random values for each placeholder.
+func GenerateRandomLogMessage() string {
+	now := time.Now().UTC()
+	// Generate random values for each placeholder.
+	randomValues := map[string]string{
+		"time":          now.Format(time.RFC3339),
+		"status_code":   strconv.Itoa([]int{200, 201, 400, 401, 404, 500}[rand.Intn(6)]),
+		"method":        []string{"GET", "POST", "PUT", "DELETE"}[rand.Intn(4)],
+		"path":          []string{"/dummy", "/test", "/stress", "/metrics", "/api/data"}[rand.Intn(5)],
+		"client_ip":     fmt.Sprintf("%d.%d.%d.%d", rand.Intn(256), rand.Intn(256), rand.Intn(256), rand.Intn(256)),
+		"latency":       fmt.Sprintf("%dms", rand.Intn(500)+10),
+		"user_agent":    []string{"Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", "curl/7.68.0", "PostmanRuntime/7.26.8"}[rand.Intn(4)],
+		"protocol":      []string{"HTTP/1.1", "HTTP/2"}[rand.Intn(2)],
+		"request_size":  strconv.Itoa(rand.Intn(9900) + 100),
+		"response_size": strconv.Itoa(rand.Intn(9900) + 100),
+		"cookies":       fmt.Sprintf("cookie1=value%d; cookie2=value%d", rand.Intn(1000), rand.Intn(1000)),
+	}
 
-	randomStatus := fmt.Sprintf("%d", statusCodes[rand.Intn(len(statusCodes))])
-	randomMethod := methodList[rand.Intn(len(methodList))]
-	randomPath := paths[rand.Intn(len(paths))]
-	randomIP := clientIPs[rand.Intn(len(clientIPs))]
-
-	format := viper.GetString("LOG_FORMAT")
-	if format == "" {
-		format = "json"
-	}
-	// If LOG_FORMAT is RANDOM, generate a random format string.
-	if strings.EqualFold(format, "RANDOM") {
-		placeholders := []string{
-			"[{{time}}]",
-			"{{status_code}}",
-			"{{method}}",
-			"{{path}}",
-			"{{client_ip}}",
-			"latency: {{latency}}",
-			"cookies: {{cookies}}",
+	// Use globalLogFormat.
+	format := globalLogFormat
+	// Replace placeholders in the format.
+	result := placeholderRegex.ReplaceAllStringFunc(format, func(match string) string {
+		content := strings.Trim(match, "{}")
+		parts := strings.SplitN(content, ":", 2)
+		key := strings.ToLower(strings.TrimSpace(parts[0]))
+		unit := ""
+		if len(parts) == 2 {
+			unit = strings.TrimSpace(parts[1])
 		}
-		// Shuffle the slice.
-		rand.Shuffle(len(placeholders), func(i, j int) {
-			placeholders[i], placeholders[j] = placeholders[j], placeholders[i]
-		})
-		format = strings.Join(placeholders, " | ")
-	} else if strings.EqualFold(format, "apache") {
-		format = "{{client_ip}} - - [{{time}}] \"{{method}} {{path}} HTTP/1.1\" {{status_code}} -"
-	} else if strings.EqualFold(format, "nginx") {
-		format = "{{client_ip}} - [{{time}}] \"{{method}} {{path}}\" {{status_code}} {{latency}}"
-	} else if strings.EqualFold(format, "json") {
-		// Return JSON formatted log
-		logObj := map[string]interface{}{
-			"time":        now,
-			"status_code": randomStatus,
-			"method":      randomMethod,
-			"path":        randomPath,
-			"client_ip":   randomIP,
-			"latency":     latency.String(),
-			"cookies":     cookies,
+		val, exists := randomValues[key]
+		if !exists {
+			return "ERR"
 		}
-		if b, err := json.Marshal(logObj); err == nil {
-			return string(b)
+		// For latency, request_size, response_size, apply unit conversion if unit specified.
+		switch key {
+		case "latency":
+			// Assume original is in ms.
+			msVal, _ := strconv.Atoi(strings.TrimSuffix(val, "ms"))
+			switch strings.ToLower(unit) {
+			case "ns":
+				return strconv.FormatInt(int64(msVal)*1e6, 10)
+			case "ms":
+				return strconv.Itoa(msVal)
+			case "s":
+				return fmt.Sprintf("%.2f", float64(msVal)/1000)
+			default:
+				// Human readable with unit label.
+				return fmt.Sprintf("%dms", msVal)
+			}
+		case "request_size", "response_size":
+			numVal, _ := strconv.Atoi(val)
+			switch strings.ToLower(unit) {
+			case "kb":
+				return fmt.Sprintf("%.3f", float64(numVal)/1024)
+			case "mb":
+				return fmt.Sprintf("%.3f", float64(numVal)/(1024*1024))
+			case "gb":
+				return fmt.Sprintf("%.3f", float64(numVal)/(1024*1024*1024))
+			default:
+				return fmt.Sprintf("%dB", numVal)
+			}
+		default:
+			return val
 		}
-	}
-	// For custom formats, replace placeholders.
-	replacements := map[string]string{
-		"{{time}}":        now,
-		"{{status_code}}": randomStatus,
-		"{{method}}":      randomMethod,
-		"{{path}}":        randomPath,
-		"{{client_ip}}":   randomIP,
-		"{{latency}}":     latency.String(),
-		"{{cookies}}":     cookies,
-	}
-	msg := format
-	for placeholder, value := range replacements {
-		msg = strings.ReplaceAll(msg, placeholder, value)
-	}
-	return msg
+	})
+	return result
 }
 
 // LogsGeneratorHandler handles POST /stress/logs.
-// It generates logs over time using random log content based on the current LOG_FORMAT.
+// It generates random log messages using GenerateRandomLogMessage over time.
 func LogsGeneratorHandler(c *gin.Context) {
 	var payload LogsGeneratorPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		ErrorJSON(c, http.StatusBadRequest, "INVALID_PAYLOAD", err.Error())
 		return
 	}
-
 	maintainSec := int(payload.MaintainSecond)
 	logCountPerInterval := int(payload.LogCountPerInterval)
 	linePerLog := int(payload.LinePerLog)
@@ -111,26 +106,24 @@ func LogsGeneratorHandler(c *gin.Context) {
 	stressFunc := func() {
 		endTime := time.Now().Add(time.Duration(maintainSec) * time.Second)
 		interval := time.Duration(intervalSec) * time.Second
-
 		for time.Now().Before(endTime) {
 			for i := 0; i < logCountPerInterval; i++ {
 				var lines []string
-				// Generate each log with multiple lines using random log content.
 				for j := 0; j < linePerLog; j++ {
-					lines = append(lines, generateRandomLog())
+					lines = append(lines, GenerateRandomLogMessage())
 				}
-				logMessage := strings.Join(lines, "\n")
-				// Log the message using our fmt-based logger.
-				log(logMessage)
+				combined := strings.Join(lines, "\n")
+				// Print the log message.
+				fmt.Println(combined)
 			}
 			time.Sleep(interval)
 		}
-		log("Logs generation completed", "duration_sec", maintainSec)
+		fmt.Println("Logs generation completed")
 	}
 
 	if payload.Async {
 		go stressFunc()
-		ResponseJSON(c, http.StatusOK, gin.H{
+		ResponseJSON(c, http.StatusOK, map[string]interface{}{
 			"message":                "Logs generation started",
 			"maintain_second":        maintainSec,
 			"log_count_per_interval": logCountPerInterval,
@@ -139,7 +132,7 @@ func LogsGeneratorHandler(c *gin.Context) {
 		})
 	} else {
 		stressFunc()
-		ResponseJSON(c, http.StatusOK, gin.H{
+		ResponseJSON(c, http.StatusOK, map[string]interface{}{
 			"message":                "Logs generation completed",
 			"maintain_second":        maintainSec,
 			"log_count_per_interval": logCountPerInterval,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -72,7 +73,7 @@ func runFileWriteStress(fileSize, fileCount, maintainSec, intervalSec int) {
 			// Write data to file.
 			err := ioutil.WriteFile(filename, data, 0644)
 			if err != nil {
-				log("failed to write file", zap.String("file", filename), zap.Error(err))
+				fmt.Println("failed to write file", zap.String("file", filename), zap.Error(err))
 			} else {
 				// Optionally remove file immediately to avoid disk fill.
 				os.Remove(filename)
@@ -80,7 +81,7 @@ func runFileWriteStress(fileSize, fileCount, maintainSec, intervalSec int) {
 		}
 		time.Sleep(interval)
 	}
-	log("File write stress completed", zap.Int("file_size", fileSize), zap.Int("file_count", fileCount))
+	fmt.Println("File write stress completed", zap.Int("file_size", fileSize), zap.Int("file_count", fileCount))
 }
 
 // FileReadPayload defines the JSON payload for heavy file read stress.
@@ -134,10 +135,10 @@ func runFileReadStress(filePath string, maintainSec, readFreq, intervalSec int) 
 		for i := 0; i < readFreq; i++ {
 			_, err := ioutil.ReadFile(filePath)
 			if err != nil {
-				log("failed to read file", zap.String("file", filePath), zap.Error(err))
+				fmt.Println("failed to read file", zap.String("file", filePath), zap.Error(err))
 			}
 		}
 		time.Sleep(interval)
 	}
-	log("File read stress completed", zap.String("file_path", filePath))
+	fmt.Println("File read stress completed", zap.String("file_path", filePath))
 }

@@ -16,9 +16,9 @@ func main() {
 	// Simulate startup delay based on STARTUP_DELAY_SECOND env variable.
 	startupDelay, err := processRandomInt(viper.GetString("STARTUP_DELAY_SECOND"), 1, 5) // default delay range 1-5 seconds
 	if err != nil {
-		log("invalid STARTUP_DELAY_SECOND, defaulting to no delay", zap.Error(err))
+		fmt.Println("invalid STARTUP_DELAY_SECOND, defaulting to no delay", zap.Error(err))
 	} else {
-		log("startup delay", zap.Int("delay", startupDelay))
+		fmt.Println("startup delay", zap.Int("delay", startupDelay))
 		time.Sleep(time.Duration(startupDelay) * time.Second)
 	}
 
@@ -93,7 +93,7 @@ func main() {
 
 	// Determine port using environment variable (with RANDOM support).
 	port := processPort()
-	log("starting server", zap.Int("port", port))
+	fmt.Println("starting server", zap.Int("port", port))
 	router.Run(":" + intToString(port))
 }
 

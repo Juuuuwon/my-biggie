@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -81,7 +82,7 @@ func runCPUStress(cpuPercent, maintainSec int) {
 		}
 		time.Sleep(sleepTime)
 	}
-	log("CPU stress test completed",
+	fmt.Println("CPU stress test completed",
 		zap.Int("cpu_percent", cpuPercent),
 		zap.Int("duration_sec", maintainSec))
 }
@@ -125,7 +126,7 @@ func runMemoryStress(memoryPercent, maintainSec int) {
 	}
 	// Hold the allocation for the specified duration.
 	time.Sleep(time.Duration(maintainSec) * time.Second)
-	log("Memory stress test completed",
+	fmt.Println("Memory stress test completed",
 		zap.Int("memory_percent", memoryPercent),
 		zap.Int("duration_sec", maintainSec))
 	// The allocated memory will be freed when this function returns.
@@ -182,7 +183,7 @@ func runMemoryLeak(leakSizeMB, maintainSec int) {
 			memoryLeakStore = append(memoryLeakStore, memBlock)
 			memoryLeakMutex.Unlock()
 		case <-done:
-			log("Memory leak simulation completed", zap.Int("leak_size_mb", leakSizeMB))
+			fmt.Println("Memory leak simulation completed", zap.Int("leak_size_mb", leakSizeMB))
 			return
 		}
 	}

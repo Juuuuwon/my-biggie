@@ -1,91 +1,156 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 )
 
-// FormatLogMessage builds a log message string based on the LOG_FORMAT environment variable.
-// Supported placeholders:
-//
-//	{{time}}, {{status_code}}, {{method}}, {{path}}, {{client_ip}}, {{latency}}, {{cookies}}.
-func FormatLogMessage(c *gin.Context, latency time.Duration) string {
-	format := viper.GetString("LOG_FORMAT")
-	if format == "" {
-		format = "json"
+// placeholderRegex matches substrings like {<placeholder>} or {<placeholder>:<unit>}
+var placeholderRegex = regexp.MustCompile(`\{([^}]+)\}`)
+
+// resolvePlaceholder processes a single placeholder (e.g., "latency:ms" or "time:%Y-%m-%dT%H:%M:%S")
+// and returns its string representation using actual request values.
+func resolvePlaceholder(content string, c *gin.Context, latency time.Duration) (string, error) {
+	parts := strings.SplitN(content, ":", 2)
+	key := strings.ToLower(strings.TrimSpace(parts[0]))
+	unitSpec := ""
+	if len(parts) == 2 {
+		unitSpec = strings.TrimSpace(parts[1])
 	}
-	// If format is RANDOM, generate a random format string.
-	if strings.EqualFold(format, "RANDOM") {
-		placeholders := []string{
-			"[{{time}}]",
-			"{{status_code}}",
-			"{{method}}",
-			"{{path}}",
-			"{{client_ip}}",
-			"latency: {{latency}}",
-			"cookies: {{cookies}}",
+	var val string
+	switch key {
+	case "time":
+		now := time.Now().UTC()
+		if unitSpec != "" {
+			layout := convertTimeFormat(unitSpec)
+			val = now.Format(layout)
+		} else {
+			val = now.Format(time.RFC3339)
 		}
-		randOrder := make([]string, len(placeholders))
-		copy(randOrder, placeholders)
-		// Shuffle the slice.
-		for i := range randOrder {
-			j := i + int(time.Now().UnixNano()%int64(len(randOrder)-i))
-			randOrder[i], randOrder[j] = randOrder[j], randOrder[i]
+	case "status_code":
+		val = strconv.Itoa(c.Writer.Status())
+	case "method":
+		val = c.Request.Method
+	case "path":
+		val = c.Request.URL.Path
+	case "client_ip":
+		val = c.ClientIP()
+	case "latency":
+		switch strings.ToLower(unitSpec) {
+		case "ns":
+			val = strconv.FormatInt(latency.Nanoseconds(), 10)
+		case "ms":
+			val = strconv.FormatInt(latency.Milliseconds(), 10)
+		case "s":
+			val = fmt.Sprintf("%.2f", latency.Seconds())
+		default:
+			// If no unit provided, convert to a human-readable unit.
+			ms := float64(latency.Milliseconds())
+			if ms >= 1000 {
+				val = fmt.Sprintf("%.3fs", ms/1000)
+			} else {
+				val = fmt.Sprintf("%.3fms", ms)
+			}
 		}
-		format = strings.Join(randOrder, " | ")
-	}
-	// Predefined formats.
-	if strings.EqualFold(format, "apache") {
-		format = "{{client_ip}} - - [{{time}}] \"{{method}} {{path}} HTTP/1.1\" {{status_code}} -"
-	} else if strings.EqualFold(format, "nginx") {
-		format = "{{client_ip}} - [{{time}}] \"{{method}} {{path}}\" {{status_code}} {{latency}}"
-	} else if strings.EqualFold(format, "json") {
-		logObj := map[string]interface{}{
-			"time":        time.Now().UTC().Format(time.RFC3339),
-			"status_code": c.Writer.Status(),
-			"method":      c.Request.Method,
-			"path":        c.Request.URL.Path,
-			"client_ip":   c.ClientIP(),
-			"latency":     latency.String(),
-			"cookies":     c.Request.Cookies(),
+	case "user_agent":
+		val = c.Request.UserAgent()
+	case "protocol":
+		val = c.Request.Proto
+	case "request_size":
+		size := c.Request.ContentLength
+		switch strings.ToLower(unitSpec) {
+		case "kb":
+			val = fmt.Sprintf("%.3f", float64(size)/1024)
+		case "mb":
+			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024))
+		case "gb":
+			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024*1024))
+		default:
+			// Human-readable conversion:
+			if size >= 1024*1024*1024 {
+				val = fmt.Sprintf("%.3fGB", float64(size)/(1024*1024*1024))
+			} else if size >= 1024*1024 {
+				val = fmt.Sprintf("%.3fMB", float64(size)/(1024*1024))
+			} else if size >= 1024 {
+				val = fmt.Sprintf("%.3fKB", float64(size)/1024)
+			} else {
+				val = fmt.Sprintf("%dB", size)
+			}
 		}
-		b, err := json.Marshal(logObj)
-		if err == nil {
-			return string(b)
+	case "response_size":
+		size := c.Writer.Size()
+		switch strings.ToLower(unitSpec) {
+		case "kb":
+			val = fmt.Sprintf("%.3f", float64(size)/1024)
+		case "mb":
+			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024))
+		case "gb":
+			val = fmt.Sprintf("%.3f", float64(size)/(1024*1024*1024))
+		default:
+			if size >= 1024*1024*1024 {
+				val = fmt.Sprintf("%.3fGB", float64(size)/(1024*1024*1024))
+			} else if size >= 1024*1024 {
+				val = fmt.Sprintf("%.3fMB", float64(size)/(1024*1024))
+			} else if size >= 1024 {
+				val = fmt.Sprintf("%.3fKB", float64(size)/1024)
+			} else {
+				val = fmt.Sprintf("%dB", size)
+			}
 		}
+	default:
+		return "", fmt.Errorf("unsupported placeholder: %s", key)
 	}
-	// For custom formats, replace placeholders.
-	replacements := map[string]string{
-		"{{time}}":        time.Now().UTC().Format(time.RFC3339),
-		"{{status_code}}": fmt.Sprintf("%d", c.Writer.Status()),
-		"{{method}}":      c.Request.Method,
-		"{{path}}":        c.Request.URL.Path,
-		"{{client_ip}}":   c.ClientIP(),
-		"{{latency}}":     latency.String(),
-		"{{cookies}}":     fmt.Sprintf("%v", c.Request.Cookies()),
-	}
-	msg := format
-	for placeholder, value := range replacements {
-		msg = strings.ReplaceAll(msg, placeholder, value)
-	}
-	return msg
+	return val, nil
 }
 
-// LoggerMiddleware logs each API request using our fmt-based logging functions.
+// convertTimeFormat converts a strftime-like format to Go time layout.
+func convertTimeFormat(format string) string {
+	replacements := map[string]string{
+		"%Y": "2006",
+		"%m": "01",
+		"%d": "02",
+		"%H": "15",
+		"%M": "04",
+		"%S": "05",
+	}
+	result := format
+	for old, new := range replacements {
+		result = strings.ReplaceAll(result, old, new)
+	}
+	return result
+}
+
+// FormatLogMessage constructs the log message using globalLogFormat.
+func FormatLogMessage(c *gin.Context, latency time.Duration) string {
+	format := globalLogFormat
+	// For predefined formats, we assume they are custom defined in globalLogFormat.
+	// Replace all placeholders in the format.
+	result := placeholderRegex.ReplaceAllStringFunc(format, func(match string) string {
+		content := strings.Trim(match, "{}")
+		val, err := resolvePlaceholder(content, c, latency)
+		if err != nil {
+			return "ERR"
+		}
+		return val
+	})
+	return result
+}
+
+// LoggerMiddleware logs each API request using the global log format.
 func LoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		startTime := time.Now()
+		start := time.Now()
 		c.Next()
-		latency := time.Since(startTime)
+		latency := time.Since(start)
 		msg := FormatLogMessage(c, latency)
-		log(msg)
+		fmt.Println(msg)
 		if len(c.Errors) > 0 {
-			log("api error", "errors", c.Errors.String())
+			fmt.Println("api error:", c.Errors.String())
 		}
 	}
 }

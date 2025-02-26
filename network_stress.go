@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -45,7 +46,7 @@ func NetworkLatencyHandler(c *gin.Context) {
 		networkStressMutex.Lock()
 		activeLatencyMs = 0
 		networkStressMutex.Unlock()
-		log("Network latency simulation ended", zap.Int("latency_ms", latencyMs))
+		fmt.Println("Network latency simulation ended", zap.Int("latency_ms", latencyMs))
 	}
 
 	if payload.Async {
@@ -92,7 +93,7 @@ func PacketLossHandler(c *gin.Context) {
 		networkStressMutex.Lock()
 		activePacketLoss = 0
 		networkStressMutex.Unlock()
-		log("Packet loss simulation ended", zap.Int("loss_percentage", lossPercentage))
+		fmt.Println("Packet loss simulation ended", zap.Int("loss_percentage", lossPercentage))
 	}
 
 	if payload.Async {

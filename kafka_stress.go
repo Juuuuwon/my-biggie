@@ -107,12 +107,12 @@ func KafkaHeavyHandler(c *gin.Context) {
 				})
 			}
 			if err := writer.WriteMessages(c, messages...); err != nil {
-				log("Kafka heavy produce failed", zap.Error(err))
+				fmt.Println("Kafka heavy produce failed", zap.Error(err))
 			}
 			time.Sleep(time.Duration(intervalSec) * time.Second)
 		}
 		writer.Close()
-		log("Kafka heavy produce (single producer) completed", zap.Int("duration_sec", maintainSec))
+		fmt.Println("Kafka heavy produce (single producer) completed", zap.Int("duration_sec", maintainSec))
 	}
 
 	if payload.Async {
@@ -163,7 +163,7 @@ func KafkaMultiHeavyHandler(c *gin.Context) {
 				defer wg.Done()
 				writer, err := getKafkaWriter()
 				if err != nil {
-					log("Kafka multi heavy writer creation failed", zap.Int("conn", connNum), zap.Error(err))
+					fmt.Println("Kafka multi heavy writer creation failed", zap.Int("conn", connNum), zap.Error(err))
 					return
 				}
 				endTime := time.Now().Add(time.Duration(maintainSec) * time.Second)
@@ -176,7 +176,7 @@ func KafkaMultiHeavyHandler(c *gin.Context) {
 						})
 					}
 					if err := writer.WriteMessages(c, messages...); err != nil {
-						log("Kafka multi heavy produce failed", zap.Int("conn", connNum), zap.Error(err))
+						fmt.Println("Kafka multi heavy produce failed", zap.Int("conn", connNum), zap.Error(err))
 					}
 					time.Sleep(time.Duration(intervalSec) * time.Second)
 				}
@@ -184,7 +184,7 @@ func KafkaMultiHeavyHandler(c *gin.Context) {
 			}(i)
 		}
 		wg.Wait()
-		log("Kafka multi heavy produce completed", zap.Int("producers", connectionCounts))
+		fmt.Println("Kafka multi heavy produce completed", zap.Int("producers", connectionCounts))
 	}
 
 	if payload.Async {
@@ -239,7 +239,7 @@ func KafkaConnectionHandler(c *gin.Context) {
 				for i := 0; i < increasePerInterval && currentCount < connectionCounts; i++ {
 					writer, err := getKafkaWriter()
 					if err != nil {
-						log("Kafka connection stress writer creation failed", zap.Error(err))
+						fmt.Println("Kafka connection stress writer creation failed", zap.Error(err))
 						continue
 					}
 					mu.Lock()
@@ -269,7 +269,7 @@ func KafkaConnectionHandler(c *gin.Context) {
 			writer.Close()
 		}
 		mu.Unlock()
-		log("Kafka connection stress completed", zap.Int("producers", currentCount))
+		fmt.Println("Kafka connection stress completed", zap.Int("producers", currentCount))
 	}
 
 	if payload.Async {

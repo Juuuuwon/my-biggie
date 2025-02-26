@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
@@ -41,14 +42,14 @@ func ErrorInjectionHandler(c *gin.Context) {
 	// Convert DuckFloat to float64.
 	activeErrorRate = float64(payload.ErrorRate)
 	errorInjectionExpiry = time.Now().Add(time.Duration(durationSec) * time.Second)
-	log("Error injection started",
+	fmt.Println("Error injection started",
 		zap.Float64("error_rate", activeErrorRate),
 		zap.Int("duration_sec", durationSec))
 
 	resetFunc := func() {
 		time.Sleep(time.Duration(durationSec) * time.Second)
 		activeErrorRate = 0.0
-		log("Error injection ended")
+		fmt.Println("Error injection ended")
 	}
 
 	if payload.Async {
@@ -77,11 +78,11 @@ func CrashSimulationHandler(c *gin.Context) {
 		return
 	}
 	durationSec := int(payload.MaintainSecond)
-	log("Crash simulation scheduled", zap.Int("maintain_second", durationSec))
+	fmt.Println("Crash simulation scheduled", zap.Int("maintain_second", durationSec))
 
 	crashFunc := func() {
 		time.Sleep(time.Duration(durationSec) * time.Second)
-		log("Simulated crash: exiting process")
+		fmt.Println("Simulated crash: exiting process")
 		os.Exit(1)
 	}
 
