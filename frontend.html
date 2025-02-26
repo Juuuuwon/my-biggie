@@ -180,6 +180,33 @@
           <button onclick="callHealthExternal()" class="bg-blue-500 text-white px-3 py-1 rounded">Call API</button>
           <textarea id="output-health-external" class="w-full mt-2 p-2 border rounded" rows="4" placeholder="Output will appear here..."></textarea>
         </div>
+
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-semibold text-lg">POST /healthcheck/hops</h3>
+          <p class="text-sm text-gray-600 mb-2">
+            Relay an HTTP request to another service by providing the target URL, HTTP method, headers, and body.
+          </p>
+          <form id="form-relay" onsubmit="callRelay(event)" class="space-y-2">
+            <label class="block">
+              URL:
+              <input type="text" name="url" value="http://a.com/simple/bar" class="w-full p-2 border rounded" placeholder="Enter target URL">
+            </label>
+            <label class="block">
+              Method:
+              <input type="text" name="method" value="POST" class="w-full p-2 border rounded" placeholder="Enter HTTP method">
+            </label>
+            <label class="block">
+              Headers (JSON):
+              <textarea name="headers" class="w-full p-2 border rounded" rows="3" placeholder='{"Content-Type": "application/json"}'>{"Content-Type": "application/json"}</textarea>
+            </label>
+            <label class="block">
+              Body (JSON):
+              <textarea name="body" class="w-full p-2 border rounded" rows="3" placeholder='{"hello": "world"}'>{"hello": "world"}</textarea>
+            </label>
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Call Relay API</button>
+          </form>
+          <textarea id="output-relay" class="w-full mt-2 p-2 border rounded" rows="6" placeholder="Output will appear here..."></textarea>
+        </div>
         
         <!-- GET /metadata/all -->
         <div class="bg-white p-4 rounded shadow mb-4">
@@ -1994,6 +2021,31 @@
             const output = document.getElementById('output-logs');
             const result = await apiCall('POST', '/stress/logs', data);
             output.value = JSON.stringify(result, null, 2);
+          }
+
+          async function callRelay(event) {
+            event.preventDefault();
+            const form = document.getElementById("form-relay");
+            const formData = new FormData(form);
+            let headers;
+            try {
+              headers = JSON.parse(formData.get("headers"));
+            } catch (e) {
+              headers = {};
+            }
+            const data = {
+              url: formData.get("url"),
+              method: formData.get("method"),
+              headers: headers,
+              body: formData.get("body")
+            };
+            const output = document.getElementById("output-relay");
+            const result = await apiCall("POST", "/healthcheck/hops", data);
+            if (typeof result === "object") {
+              output.value = JSON.stringify(result, null, 2);
+            } else {
+              output.value = result;
+            }
           }
 
         </script>

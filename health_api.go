@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -103,6 +106,72 @@ func ExternalHealthHandler(c *gin.Context) {
 	}
 
 	ResponseJSON(c, http.StatusOK, statuses)
+}
+
+// RelayRequest defines the expected JSON payload for the relay API.
+type RelayRequest struct {
+	URL     string            `json:"url"`
+	Method  string            `json:"method"`
+	Headers map[string]string `json:"headers"`
+	Body    string            `json:"body"`
+}
+
+// RelayResponse defines the structure of the relay response.
+type RelayResponse struct {
+	StatusCode  int         `json:"status_code"`
+	Headers     http.Header `json:"headers"`
+	Body        string      `json:"body"`
+	RequestedAt string      `json:"requested_at"`
+}
+
+// RelayHandler handles POST /healthcheck/hops.
+// It sends an HTTP request to the specified URL with given method, headers, and body,
+// then returns the response details.
+func RelayHandler(c *gin.Context) {
+	var reqPayload RelayRequest
+	if err := c.ShouldBindJSON(&reqPayload); err != nil {
+		ErrorJSON(c, http.StatusBadRequest, "INVALID_PAYLOAD", err.Error())
+		return
+	}
+
+	// Create the new request with provided body.
+	var bodyReader io.Reader
+	if reqPayload.Body != "" {
+		bodyReader = bytes.NewBufferString(reqPayload.Body)
+	}
+	req, err := http.NewRequest(reqPayload.Method, reqPayload.URL, bodyReader)
+	if err != nil {
+		ErrorJSON(c, http.StatusInternalServerError, "REQUEST_CREATION_FAILED", err.Error())
+		return
+	}
+	// Set provided headers.
+	for key, value := range reqPayload.Headers {
+		req.Header.Set(key, value)
+	}
+
+	// Create a client with a timeout.
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		ErrorJSON(c, http.StatusInternalServerError, "REQUEST_FAILED", err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		ErrorJSON(c, http.StatusInternalServerError, "READ_RESPONSE_FAILED", err.Error())
+		return
+	}
+
+	// Build the relay response.
+	relayResp := RelayResponse{
+		StatusCode:  resp.StatusCode,
+		Headers:     resp.Header,
+		Body:        string(respBody),
+		RequestedAt: time.Now().UTC().Format(time.RFC3339Nano),
+	}
+	ResponseJSON(c, http.StatusOK, relayResp)
 }
 
 // checkMySQL connects to MySQL using the provided configuration and pings the server.

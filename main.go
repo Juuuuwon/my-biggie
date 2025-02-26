@@ -47,6 +47,7 @@ func main() {
 	router.GET("/healthcheck", HealthCheckHandler)
 	router.GET("/healthcheck/slow", SlowHealthCheckHandler)
 	router.GET("/healthcheck/external", ExternalHealthHandler)
+	router.POST("/healthcheck/hops", RelayHandler)
 
 	router.GET("/metadata/all", MetadataAllHandler)
 	router.GET("/metadata/revision_color", RevisionColorHandler)

@@ -46,6 +46,7 @@ Written in Golang.
       - [Simple Health Check API](#simple-health-check-api)
       - [Slow Health Check API](#slow-health-check-api)
       - [Check External Service Health API](#check-external-service-health-api)
+      - [Run HTTP request](#run-http-request)
       - [Fetch All Metadatas API](#fetch-all-metadatas-api)
       - [Visualize Revision HTML API **\[not JSON\]**](#visualize-revision-html-api-not-json)
     - [Stress Test APIs](#stress-test-apis)
@@ -290,6 +291,22 @@ GET /healthcheck/slow?wait=[number]
 GET /healthcheck/external
 ```
 - Tests the connection to all configured external services.
+
+#### Run HTTP request
+```
+POST /healthcheck/hops
+Content-Type: application/json
+
+{
+  "url": "http://a.com/simple/bar",
+  "method": "POST",
+  "headers": {
+     "Content-Type": "application"
+  },
+  "body": "{\"hello\":\"world\"}"
+}
+```
+- For simulate micro service architecture this API calls another APIs for you
 
 #### Fetch All Metadatas API
 ```
