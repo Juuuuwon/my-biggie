@@ -119,9 +119,8 @@ func initConfig() {
 		globalLogFormat = "{client_ip} - - {time:%d/%m/%Y:%H:%M:%S} {method} {path} {status_code} -"
 	case "nginx":
 		globalLogFormat = "{client_ip} - {time:%d/%b/%Y:%H:%M:%S} {method} {path} {status_code} {latency:ms}"
-	case "json":
-		// For json, we output all placeholders in a fixed order.
-		globalLogFormat = "{time} {status_code} {method} {path} {client_ip} {latency} {user_agent} {protocol} {request_size} {response_size}"
+	case "full":
+		globalLogFormat = "{time} {status_code} {method} {path} {client_ip} {latency} \"{user_agent}\" {protocol} {request_size} {response_size}"
 	case "random":
 		globalLogFormat = generateRandomGlobalLogFormat()
 	default:

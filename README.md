@@ -3,25 +3,77 @@
 The BIG application for exercising HA and DR.  
 Written in Golang.
 
+## Features
+* Simulate slow startup, network delays, and packet drops.
+* Make application crash and restarts randomly.
+* Perform CPU, memory, and memory leak stress tests.
+* Generate high disk I/O loads with file read/write operations.
+* Flood the system with concurrent requests and simulate DDoS attacks.
+* Inject random errors and simulate service crashes for HA/DR testing.
+* Retrieve detailed system metrics including CPU load, memory usage, and network throughput.
+* Stress-test RDBMS (MySQL, PostgreSQL, Redshift) with massive queries and connection flooding.
+* Challenge Redis and Kafka systems with high-volume operations and producer connection loads.
+* Customize logging output with environment. or make it very RANDOM
+* Consistent JSON API responses and standardized error handling across all endpoints.
+
 ---
 
 ## Table of Contents
 
-- [For ALL APIs](#for-all-apis)
-- [API Endpoints](#api-endpoints)
-  - [Basic APIs](#basic-apis)
-  - [Health & Metadata APIs](#health--metadata-apis)
-  - [Stress Test APIs](#stress-test-apis)
-  - [Heavy Database Activities](#heavy-database-activities)
-    - [MySQL APIs](#mysql-apis)
-    - [PostgreSQL APIs](#postgresql-apis)
-    - [Redshift APIs](#redshift-apis)
-    - [Redis APIs](#redis-apis)
-    - [Kafka APIs](#kafka-apis)
-  - [Error Injection APIs](#error-injection-apis)
-  - [Service Management APIs](#service-management-apis)
-  - [Concurrency & DDoS APIs](#concurrency--ddos-apis)
-  - [System Metrics API](#system-metrics-api)
+- [The Biggie](#the-biggie)
+  - [Features](#features)
+  - [Table of Contents](#table-of-contents)
+  - [For ALL APIs](#for-all-apis)
+    - [Body Type](#body-type)
+    - [Optional Variables](#optional-variables)
+    - [Random Variables](#random-variables)
+    - [Standard Error Format](#standard-error-format)
+    - [External Services](#external-services)
+    - [LOG\_FORMAT Environment Variable](#log_format-environment-variable)
+      - [Predefined Formats](#predefined-formats)
+      - [Custom Formats](#custom-formats)
+      - [RANDOM Format](#random-format)
+      - [Examples](#examples)
+    - [STARTUP\_DELAY\_SECOND Environment Variable](#startup_delay_second-environment-variable)
+  - [API Endpoints](#api-endpoints)
+    - [Basic APIs](#basic-apis)
+      - [Simple GET API](#simple-get-api)
+      - [Foo GET API](#foo-get-api)
+      - [Bar POST API](#bar-post-api)
+      - [Random HTML API **\[not JSON\]**](#random-html-api-not-json)
+      - [Large Response API](#large-response-api)
+    - [Health \& Metadata APIs](#health--metadata-apis)
+      - [Simple Health Check API](#simple-health-check-api)
+      - [Slow Health Check API](#slow-health-check-api)
+      - [Check External Service Health API](#check-external-service-health-api)
+      - [Fetch All Metadatas API](#fetch-all-metadatas-api)
+      - [Visualize Revision HTML API **\[not JSON\]**](#visualize-revision-html-api-not-json)
+    - [Stress Test APIs](#stress-test-apis)
+      - [CPU Stress API](#cpu-stress-api)
+      - [Memory Stress API](#memory-stress-api)
+      - [Simulate Memory Leak API](#simulate-memory-leak-api)
+      - [Heavy File Write API](#heavy-file-write-api)
+      - [Heavy File Read API](#heavy-file-read-api)
+      - [Simulated Network Latency API](#simulated-network-latency-api)
+      - [Simulated Packet Loss API](#simulated-packet-loss-api)
+    - [Heavy Database Activities](#heavy-database-activities)
+      - [MySQL APIs](#mysql-apis)
+      - [PostgreSQL APIs](#postgresql-apis)
+      - [Redshift APIs](#redshift-apis)
+      - [Redis APIs](#redis-apis)
+      - [Kafka APIs](#kafka-apis)
+    - [Error Injection APIs](#error-injection-apis)
+      - [Inject Random Error API](#inject-random-error-api)
+      - [Crash Simulation API](#crash-simulation-api)
+    - [Concurrency \& DDoS APIs](#concurrency--ddos-apis)
+      - [Simulate Concurrent Flood](#simulate-concurrent-flood)
+      - [Simulate Downtime](#simulate-downtime)
+      - [Simulate External API Calls](#simulate-external-api-calls)
+      - [Simulate DDoS Attack](#simulate-ddos-attack)
+    - [System Metrics API](#system-metrics-api)
+      - [Fetch System Metrics](#fetch-system-metrics)
+    - [Fake Log Generation API](#fake-log-generation-api)
+      - [Generate Logs](#generate-logs)
 
 ---
 
@@ -85,6 +137,93 @@ Some APIs require environment variables for external services. Variables are pri
   - `KAFKA_SERVERS` (a comma-separated list of Kafka servers)
   - `KAFKA_TLS_ENABLED` (set to `true` or `false`)
   - `KAFKA_TOPIC`
+
+### LOG_FORMAT Environment Variable
+
+The `LOG_FORMAT` environment variable controls the log output format for the application. It accepts either predefined format names, a custom format string with placeholders, or a special value `"RANDOM"` which instructs the system to generate a random log format according to a defined algorithm.
+
+#### Predefined Formats
+- **apache**: Uses the Apache common log format.
+  - Example:  
+    `{client_ip} - - {time:%d/%m/%Y:%H:%M:%S} {method} {path} {status_code} -`
+- **nginx**: Uses a common Nginx log format.
+  - Example:  
+    `{client_ip} - {time:%d/%b/%Y:%H:%M:%S} {method} {path} {status_code} {latency:ms}`
+- **full**: Outputs logs in common format, including all supported placeholders.
+  - Example:  
+    `{time} {status_code} {method} {path} {client_ip} {latency} "{user_agent}" {protocol} {request_size} {response_size}`
+
+#### Custom Formats
+> We serve simple webpage that generates random Log formats\
+> https://biggie-logformat.pmh.codes
+
+You can specify a custom log format string using placeholders. Placeholders are defined using curly braces in the following forms:
+- **Basic placeholder**:  
+  `{placeholder_name}`
+- **Placeholder with unit**:  
+  `{placeholder_name:unit}`
+
+Supported placeholder names (case-insensitive):
+- **time** – The current timestamp.  
+  *Optionally*, you can specify a strftime(3)-like format (e.g., `{time:%Y-%m-%dT%H:%M:%S}`).
+- **status_code** – The HTTP response status code.
+- **method** – The HTTP request method.
+- **path** – The requested URL path.
+- **client_ip** – The client's IP address.
+- **latency** – The time taken to process the request.  
+  Supported units: `s`, `ms`, `micros` (microseconds), `ns` (nanoseconds).  
+  If omitted, a human-readable value with unit label is provided (e.g., `10.001s`).
+- **user_agent** – The User-Agent header value.
+- **protocol** – The HTTP protocol (e.g., `HTTP/1.1`, `HTTP/2`).
+- **request_size** – The size of the HTTP request body.  
+  Supported units: `b` (bytes), `kb`, `mb`, `gb` (using 1024-based conversion).  
+  If omitted, a human-readable value with unit label is provided (e.g., `10.001kb`).
+- **response_size** – The size of the HTTP response body.  
+  Same unit rules as for request_size.
+
+#### RANDOM Format
+If you set `LOG_FORMAT` to `"RANDOM"`, the application will generate a random log format at startup according to these rules:
+- **Mandatory Fields**:  
+  The generated format will always include these required placeholders:  
+  `time`, `status_code`, `method`, `path`, and `client_ip`.
+- **Optional Fields**:  
+  Up to 2 optional placeholders (from `latency`, `user_agent`, `protocol`, `request_size`, `response_size`) may be added, with a total of no more than 7 placeholders.
+- **Random Ordering**:  
+  The placeholders are randomly ordered.
+- **Unit Specifiers**:  
+  For placeholders that support units (such as `time`, `latency`, `request_size`, and `response_size`), a random unit specifier is chosen.  
+  For example, the `time` placeholder might be assigned a random strftime format (ensuring it includes year, month, day, hour, minute, and second).
+- **Random Quoting and Delimiters**:  
+  Each placeholder is independently wrapped (or not) with random quotes (`" "`, `' '`) or square brackets (`[ ]`).  
+  Additionally, random " - " tokens may be inserted between placeholders.
+- **Consistency**:  
+  The generated random format is created once at application startup and used consistently for all logging during that run.
+- **Display**:  
+  The generated random format is printed at startup so you know exactly which format is being used.
+
+#### Examples
+- **Predefined Format (apache)**:  
+  `{client_ip} - - {time:%d/%m/%Y:%H:%M:%S} {method} {path} {status_code} -`
+- **Predefined Format (nginx)**:  
+  `{client_ip} - {time:%d/%b/%Y:%H:%M:%S} {method} {path} {status_code} {latency:ms}`
+- **Predefined Format (json)**:  
+  `{time} {status_code} {method} {path} {client_ip} {latency} {user_agent} {protocol} {request_size} {response_size}`
+- **RANDOM Format (example)**:  
+  `"[{time:%Y/%m/%dT%H:%M:%S}]" - {client_ip} {method} "{path}" {status_code} {latency:ms} - {user_agent}`
+
+Each time the application starts with `LOG_FORMAT` set to `"RANDOM"`, a new random log format is generated following the rules above.
+
+This feature gives you flexible control over your log output, allowing you to use standard log formats, customize the output, or experiment with randomly generated log formats.
+
+### STARTUP_DELAY_SECOND Environment Variable
+
+The `STARTUP_DELAY_SECOND` environment variable allows you to introduce an intentional delay at application startup. This is useful for simulating service initialization delays, orchestrating startup order among dependent services, or testing how your application behaves when there is a delay before it starts handling requests.
+
+**Example Usage:**
+- Fixed delay:  
+  `STARTUP_DELAY_SECOND=3`
+- Random delay within a range:  
+  `STARTUP_DELAY_SECOND=RANDOM:1:5`
 
 ---
 
