@@ -1,7 +1,7 @@
 # The Biggie
 
 The BIG application for exercising HA and DR.  
-Written in Golang.
+Written in Golang. 
 
 ## Features
 * Simulate slow startup, network delays, and packet drops.
